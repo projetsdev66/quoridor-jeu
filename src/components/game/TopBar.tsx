@@ -18,12 +18,12 @@ export function TopBar({ soundEnabled, toggleSound, onQuit, onRules, roomId, gam
           QUORIDOR
         </h1>
         {gameTime && (
-          <div className="font-mono text-[var(--color-ivory)]/70 text-sm hidden sm:block">
+          <div className="font-mono text-[var(--color-ivory)]/70 text-sm">
             {gameTime}
           </div>
         )}
         {roomId && (
-          <div className="hidden sm:flex items-center bg-[#180f0a] px-3 py-1 rounded border border-[#3b2419]">
+          <div className="flex items-center bg-[#180f0a] px-3 py-1 rounded border border-[#3b2419]">
             <span className="text-[var(--color-ivory)]/50 text-xs mr-2">Salle</span>
             <span className="font-mono text-sm text-[var(--color-ivory)] tracking-widest">{roomId}</span>
           </div>
