@@ -23,7 +23,13 @@ export function useGame(initialState?: GameState, roomId?: string) {
     const unsubscribe = onValue(roomRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        setGameState(data as GameState);
+        setGameState({
+          ...getFreshState(),
+          ...data,
+          walls: data.walls || [],
+          history: data.history || [],
+          chat: data.chat || [],
+        } as GameState);
       }
     });
     return () => unsubscribe();
@@ -81,4 +87,4 @@ export function useGame(initialState?: GameState, roomId?: string) {
     dispatchChat,
     restartGame
   };
-}
+          }
