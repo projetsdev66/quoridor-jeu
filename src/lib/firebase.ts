@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, get, update, type DatabaseReference } from 'firebase/database';
-import { type GameState } from './gameLogic';
+import { type GameState, getFreshState } from './gameLogic';
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDXUJLgFNufpdZLMWjxRBQNGLOukvLx_4w",
@@ -36,7 +36,14 @@ export async function updateGameState(roomId: string, updates: Partial<GameState
 export async function joinRoom(roomId: string): Promise<GameState | null> {
   const snapshot = await get(getRoomRef(roomId));
   if (snapshot.exists()) {
-    return snapshot.val() as GameState;
+    const data = snapshot.val();
+    return {
+      ...getFreshState(),
+      ...data,
+      walls: data.walls || [],
+      history: data.history || [],
+      chat: data.chat || [],
+    } as GameState;
   }
   return null;
 }
