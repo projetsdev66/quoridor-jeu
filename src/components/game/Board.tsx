@@ -1,6 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { type GameState, type Player, type Position, type Wall, SIZE, getValidMoves, canPlaceWall } from '@/lib/gameLogic';
+import {
+  type GameState,
+  type Player,
+  type Position,
+  type Wall,
+  SIZE,
+  getValidMoves,
+  canPlaceWall,
+  getShortestPath,
+} from '@/lib/gameLogic';
 import { Cell } from './Cell';
 import { Pawn } from './Pawn';
 import { WallRender } from './WallRender';
@@ -10,11 +19,12 @@ interface BoardProps {
   gameState: GameState;
   localPlayer: Player;
   mode: 'move' | 'wallH' | 'wallV';
+  showPath?: boolean;
   onMove: (pos: Position) => void;
   onWall: (wall: Wall) => void;
 }
 
-export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardProps) {
+export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }: BoardProps) {
   const [hoveredWall, setHoveredWall] = useState<Wall | null>(null);
   const [pendingWall, setPendingWall] = useState<Wall | null>(null);
 
@@ -22,7 +32,6 @@ export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardPro
   const oppPos = gameState.pos[localPlayer === 'p1' ? 'p2' : 'p1'];
   const myPos = gameState.pos[localPlayer];
 
-  // Clear pending/hovered when turn ends or mode changes — use effect, not render
   useEffect(() => {
     if (!isMyTurn || !mode.startsWith('wall')) {
       setPendingWall(null);
@@ -34,6 +43,21 @@ export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardPro
     if (mode !== 'move' || !isMyTurn) return [];
     return getValidMoves(myPos, oppPos, gameState.walls);
   }, [mode, isMyTurn, myPos, oppPos, gameState.walls]);
+
+  // Path hint: shortest path cells for the local player (excluding current position)
+  const myGoalRow = localPlayer === 'p1' ? SIZE - 1 : 0;
+  const pathHintSet = useMemo(() => {
+    if (!showPath) return new Set<string>();
+    const path = getShortestPath(myPos, myGoalRow, gameState.walls);
+    // Skip index 0 (current position), highlight the rest
+    return new Set(path.slice(1).map(p => `${p.r},${p.c}`));
+  }, [showPath, myPos, myGoalRow, gameState.walls]);
+
+  // Last move highlight (opponent's last move)
+  const lastMovePos = useMemo(() => {
+    if (gameState.lastAction?.type === 'move') return gameState.lastAction.pos;
+    return null;
+  }, [gameState.lastAction]);
 
   const handleCellClick = (r: number, c: number) => {
     if (mode === 'move' && isMyTurn) {
@@ -49,9 +73,7 @@ export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardPro
     }
   };
 
-  const handleWallLeave = () => {
-    setHoveredWall(null);
-  };
+  const handleWallLeave = () => setHoveredWall(null);
 
   const handleWallClick = (wall: Wall) => {
     if (!mode.startsWith('wall') || !isMyTurn) return;
@@ -78,15 +100,19 @@ export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardPro
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       const isValid = validMoves.some(m => m.r === r && m.c === c);
+      const isLastMove = lastMovePos?.r === r && lastMovePos?.c === c;
+      const isPathHint = pathHintSet.has(`${r},${c}`);
       cells.push(
         <Cell
           key={`c-${r}-${c}`}
           r={r}
           c={c}
           isValidMove={isValid}
+          isLastMove={isLastMove}
+          isPathHint={isPathHint && !isValid}
           onClick={() => handleCellClick(r, c)}
           delayIndex={isValid ? moveIndex++ : 0}
-        />
+        />,
       );
     }
   }
@@ -113,13 +139,12 @@ export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardPro
             onHover={() => handleWallHover(wall)}
             onLeave={handleWallLeave}
             onClick={() => handleWallClick(wall)}
-          />
+          />,
         );
       }
     }
   }
 
-  // Preview wall: pending (mobile) takes priority over hover
   const previewWall = pendingWall ?? hoveredWall;
 
   return (
@@ -141,7 +166,7 @@ export function Board({ gameState, localPlayer, mode, onMove, onWall }: BoardPro
 
         {/* Placed Walls */}
         <AnimatePresence>
-          {gameState.walls.map((w, i) => (
+          {gameState.walls.map(w => (
             <WallRender key={`w-${w.orientation}-${w.row}-${w.col}`} r={w.row} c={w.col} orientation={w.orientation} />
           ))}
         </AnimatePresence>
