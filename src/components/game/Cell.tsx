@@ -4,11 +4,13 @@ interface CellProps {
   r: number;
   c: number;
   isValidMove: boolean;
+  isLastMove?: boolean;
+  isPathHint?: boolean;
   onClick: () => void;
   delayIndex: number;
 }
 
-export function Cell({ r, c, isValidMove, onClick, delayIndex }: CellProps) {
+export function Cell({ r, c, isValidMove, isLastMove, isPathHint, onClick, delayIndex }: CellProps) {
   const cellPct = 9.0909;
   const gapPct = 2.2727;
 
@@ -25,6 +27,29 @@ export function Cell({ r, c, isValidMove, onClick, delayIndex }: CellProps) {
         height: `${cellPct}%`,
       }}
     >
+      {/* Last move highlight */}
+      {isLastMove && (
+        <div className="absolute inset-0 rounded-sm pointer-events-none"
+          style={{ background: 'rgba(201,154,82,0.18)', boxShadow: 'inset 0 0 0 1px rgba(201,154,82,0.35)' }}
+        />
+      )}
+
+      {/* Path hint dot */}
+      {isPathHint && !isValidMove && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div
+            className="rounded-full"
+            style={{
+              width: '28%',
+              height: '28%',
+              background: 'rgba(201,154,82,0.28)',
+              boxShadow: '0 0 6px rgba(201,154,82,0.3)',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Valid move dot */}
       <AnimatePresence>
         {isValidMove && (
           <motion.div

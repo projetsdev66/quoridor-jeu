@@ -76,6 +76,42 @@ export function hasPath(pos: Position, goalRow: number, walls: Wall[]): boolean 
   return bfsDistance(pos, goalRow, walls) !== Infinity;
 }
 
+export function getShortestPath(start: Position, goalRow: number, walls: Wall[]): Position[] {
+  const keyOf = (r: number, c: number) => `${r},${c}`;
+  const parent = new Map<string, string | null>();
+  const startKey = keyOf(start.r, start.c);
+  parent.set(startKey, null);
+
+  const queue: Position[] = [start];
+  let head = 0;
+  let goalKey: string | null = null;
+
+  while (head < queue.length) {
+    const { r, c } = queue[head++];
+    if (r === goalRow) { goalKey = keyOf(r, c); break; }
+
+    const dirs: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr, nc = c + dc;
+      const nk = keyOf(nr, nc);
+      if (inBounds(nr, nc) && !parent.has(nk) && !wallBlocks(walls, r, c, nr, nc)) {
+        parent.set(nk, keyOf(r, c));
+        queue.push({ r: nr, c: nc });
+      }
+    }
+  }
+
+  if (!goalKey) return [];
+  const path: Position[] = [];
+  let cur: string | null = goalKey;
+  while (cur !== null) {
+    const [r, c] = cur.split(',').map(Number);
+    path.unshift({ r, c });
+    cur = parent.get(cur) ?? null;
+  }
+  return path;
+}
+
 export function bfsDistance(start: Position, goalRow: number, walls: Wall[]): number {
   const queue: { r: number; c: number; dist: number }[] = [{ r: start.r, c: start.c, dist: 0 }];
   const visited = new Set<string>();
