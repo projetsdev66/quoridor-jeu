@@ -148,7 +148,7 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
   const previewWall = pendingWall ?? hoveredWall;
 
   return (
-    <div className="relative w-full max-w-[460px] aspect-square mx-auto bg-[var(--color-wood-dark)] rounded-lg shadow-2xl p-[3%] overflow-visible">
+    <div className="relative w-full max-w-[460px] lg:max-w-[520px] aspect-square mx-auto bg-[var(--color-wood-dark)] rounded-lg shadow-2xl p-[3%] overflow-visible">
       {/* Wooden Frame */}
       <div
         className={`absolute inset-0 border-[6px] rounded-lg pointer-events-none transition-colors duration-300 ${

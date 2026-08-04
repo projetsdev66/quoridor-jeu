@@ -113,56 +113,58 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         gameTime={gameTime}
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-5xl mx-auto w-full gap-6">
+      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 lg:p-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
 
-        {/* Opponent Card */}
-        <div className="w-full max-w-[460px]">
-          <PlayerCard
-            player={displayOppId}
-            name={gameState.names[displayOppId]}
-            wallsLeft={gameState.wallsLeft[displayOppId]}
-            isActive={gameState.turn === displayOppId && !gameState.winner}
-            isLocal={isLocalDuo}
-            avatarLabel={isLocalDuo ? (displayOppId === 'p1' ? 'J1' : 'J2') : undefined}
+        <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
+          {/* Opponent Card */}
+          <div className="w-full max-w-[460px]">
+            <PlayerCard
+              player={displayOppId}
+              name={gameState.names[displayOppId]}
+              wallsLeft={gameState.wallsLeft[displayOppId]}
+              isActive={gameState.turn === displayOppId && !gameState.winner}
+              isLocal={isLocalDuo}
+              avatarLabel={isLocalDuo ? (displayOppId === 'p1' ? 'J1' : 'J2') : undefined}
+            />
+          </div>
+
+          {/* Status Line */}
+          <StatusLine
+            isMyTurn={isLocalDuo ? true : isMyTurn}
+            winner={gameState.winner}
+            opponentName={gameState.names[displayOppId]}
           />
+
+          {/* The Board */}
+          <Board
+            gameState={gameState}
+            localPlayer={boardPlayer}
+            mode={mode}
+            showPath={showPath}
+            onMove={(pos) => dispatchMove(boardPlayer, pos)}
+            onWall={(wall) => dispatchWall(boardPlayer, wall)}
+          />
+
+          {/* Path hint toggle */}
+          {!gameState.winner && (
+            <div className="flex justify-center -mt-2 gap-2">
+              <button
+                onClick={() => setShowPath(p => !p)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                  showPath
+                    ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]'
+                    : 'bg-transparent border-[#3b2419] text-[var(--color-ivory)]/40 hover:text-[var(--color-ivory)]/70 hover:border-[#5c3a24]'
+                }`}
+              >
+                <Lightbulb className="w-3.5 h-3.5" />
+                Chemin optimal
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Status Line */}
-        <StatusLine
-          isMyTurn={isLocalDuo ? true : isMyTurn}
-          winner={gameState.winner}
-          opponentName={gameState.names[displayOppId]}
-        />
-
-        {/* The Board */}
-        <Board
-          gameState={gameState}
-          localPlayer={boardPlayer}
-          mode={mode}
-          showPath={showPath}
-          onMove={(pos) => dispatchMove(boardPlayer, pos)}
-          onWall={(wall) => dispatchWall(boardPlayer, wall)}
-        />
-
-        {/* Path hint toggle */}
-        {!gameState.winner && (
-          <div className="flex justify-center -mt-2 gap-2">
-            <button
-              onClick={() => setShowPath(p => !p)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                showPath
-                  ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]'
-                  : 'bg-transparent border-[#3b2419] text-[var(--color-ivory)]/40 hover:text-[var(--color-ivory)]/70 hover:border-[#5c3a24]'
-              }`}
-            >
-              <Lightbulb className="w-3.5 h-3.5" />
-              Chemin optimal
-            </button>
-          </div>
-        )}
-
         {/* My Card & Controls */}
-        <div className="w-full max-w-[460px] flex flex-col gap-4">
+        <div className="w-full max-w-[460px] lg:w-[360px] lg:shrink-0 lg:sticky lg:top-6 flex flex-col gap-4">
           <PlayerCard
             player={boardPlayer}
             name={gameState.names[boardPlayer]}

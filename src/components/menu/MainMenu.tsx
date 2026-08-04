@@ -89,7 +89,7 @@ export function MainMenu({
   const totalGames = stats.wins + stats.losses;
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
+    <div className="w-full max-w-md lg:max-w-lg mx-auto p-6">
       <div className="text-center mb-8">
         <h1 className="text-5xl font-serif font-bold text-[var(--color-brass)] tracking-widest mb-2">
           QUORIDOR
