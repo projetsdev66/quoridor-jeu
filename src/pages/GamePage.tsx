@@ -1,39 +1,129 @@
 import { useState } from 'react';
 import { type GameState, type Player, getFreshState } from '@/lib/gameLogic';
+import { type Difficulty } from '@/lib/aiEngine';
 import { MainMenu } from '@/components/menu/MainMenu';
 import { GameCore } from '@/components/game/GameCore';
+import { PuzzleScreen } from '@/components/puzzle/PuzzleScreen';
+
+type View = 'menu' | 'game' | 'puzzles';
+
+const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  easy: 'Facile',
+  medium: 'Moyen',
+  hard: 'Difficile',
+  expert: 'Expert',
+};
+
+function survivalDifficultyForRound(round: number): Difficulty {
+  if (round <= 2) return 'easy';
+  if (round <= 4) return 'medium';
+  if (round <= 6) return 'hard';
+  return 'expert';
+}
 
 export function GamePage() {
-  const [activeGame, setActiveGame] = useState<{ state: GameState; roomId?: string; localPlayer: Player } | null>(null);
+  const [view, setView] = useState<View>('menu');
+  const [activeGame, setActiveGame] = useState<{
+    state: GameState;
+    roomId?: string;
+    localPlayer: Player;
+    survivalRound?: number;
+  } | null>(null);
+  const [playerName, setPlayerName] = useState('Vous');
+  const [survivalActive, setSurvivalActive] = useState(false);
 
-  const handleStartSolo = (difficulty: 'easy' | 'medium' | 'hard', playerName: string) => {
+  const buildSoloState = (difficulty: Difficulty, name: string, mode: 'classic' | 'blitz' | 'survival', round?: number): GameState => {
     const state = getFreshState();
     state.aiDifficulty = difficulty;
-    state.names.p1 = playerName || 'Vous';
-    state.names.p2 =
-      'IA ' + (difficulty === 'easy' ? '(Facile)' : difficulty === 'medium' ? '(Moyen)' : '(Difficile)');
+    state.mode = mode;
+    state.names.p1 = name || 'Vous';
+    state.names.p2 = round
+      ? `IA · Manche ${round} · ${DIFFICULTY_LABEL[difficulty]}`
+      : `IA (${DIFFICULTY_LABEL[difficulty]})`;
+    return state;
+  };
 
+  const handleStartSolo = (difficulty: Difficulty, name: string, mode: 'classic' | 'blitz') => {
+    setPlayerName(name || 'Vous');
+    setSurvivalActive(false);
+    setActiveGame({ state: buildSoloState(difficulty, name, mode), localPlayer: 'p1' });
+    setView('game');
+  };
+
+  const handleStartDuo = (name: string) => {
+    const state = getFreshState();
+    state.mode = 'duo';
+    state.names.p1 = name || 'Joueur 1';
+    state.names.p2 = 'Joueur 2';
+    setPlayerName(name || 'Joueur 1');
+    setSurvivalActive(false);
     setActiveGame({ state, localPlayer: 'p1' });
+    setView('game');
+  };
+
+  const handleStartSurvival = (name: string) => {
+    setPlayerName(name || 'Vous');
+    setSurvivalActive(true);
+    const round = 1;
+    setActiveGame({
+      state: buildSoloState('easy', name, 'survival', round),
+      localPlayer: 'p1',
+      survivalRound: round,
+    });
+    setView('game');
+  };
+
+  const handleSurvivalResult = (won: boolean) => {
+    if (!survivalActive) return;
+    if (!won) {
+      // Run over — back to menu on the next "Menu principal" click.
+      setSurvivalActive(false);
+      return;
+    }
+    setActiveGame((prev) => {
+      const nextRound = (prev?.survivalRound ?? 1) + 1;
+      const difficulty = survivalDifficultyForRound(nextRound);
+      return {
+        state: buildSoloState(difficulty, playerName, 'survival', nextRound),
+        localPlayer: 'p1',
+        survivalRound: nextRound,
+      };
+    });
   };
 
   const handleRoomCreated = (roomId: string, state: GameState) => {
+    setSurvivalActive(false);
     setActiveGame({ state, roomId, localPlayer: 'p1' });
+    setView('game');
   };
 
   const handleRoomJoined = (roomId: string, state: GameState) => {
+    setSurvivalActive(false);
     setActiveGame({ state, roomId, localPlayer: 'p2' });
+    setView('game');
   };
 
-  if (activeGame) {
+  const goHome = () => {
+    setActiveGame(null);
+    setSurvivalActive(false);
+    setView('menu');
+  };
+
+  if (view === 'game' && activeGame) {
     return (
       <GameCore
-        key={activeGame.roomId || 'local'}
+        key={activeGame.roomId || `local-${activeGame.survivalRound ?? 0}`}
         initialState={activeGame.state}
         roomId={activeGame.roomId}
         localPlayerId={activeGame.localPlayer}
-        onHome={() => setActiveGame(null)}
+        onHome={goHome}
+        onSurvivalResult={survivalActive ? handleSurvivalResult : undefined}
       />
     );
+  }
+
+  if (view === 'puzzles') {
+    return <PuzzleScreen onHome={goHome} />;
   }
 
   return (
@@ -49,6 +139,9 @@ export function GamePage() {
 
       <MainMenu
         onStartSolo={handleStartSolo}
+        onStartDuo={handleStartDuo}
+        onStartSurvival={handleStartSurvival}
+        onOpenPuzzles={() => setView('puzzles')}
         onRoomCreated={handleRoomCreated}
         onRoomJoined={handleRoomJoined}
       />

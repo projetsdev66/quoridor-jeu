@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Lightbulb } from 'lucide-react';
-import { type GameState, type Player, getFreshState } from '@/lib/gameLogic';
+import { type GameState, type Player } from '@/lib/gameLogic';
 import { useGame } from '@/hooks/useGame';
 import { useAI } from '@/hooks/useAI';
 import { useSound } from '@/hooks/useSound';
 import { useTimer } from '@/hooks/useTimer';
-import { useTurnTimer } from '@/hooks/useTurnTimer';
+import { useTurnTimer, TURN_DURATION, BLITZ_TURN_DURATION } from '@/hooks/useTurnTimer';
 import { useStats } from '@/hooks/useStats';
 import { Board } from '@/components/game/Board';
 import { TopBar } from '@/components/game/TopBar';
@@ -23,9 +23,10 @@ interface GameCoreProps {
   roomId?: string;
   localPlayerId: Player;
   onHome: () => void;
+  onSurvivalResult?: (won: boolean) => void;
 }
 
-export function GameCore({ initialState, roomId, localPlayerId, onHome }: GameCoreProps) {
+export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult }: GameCoreProps) {
   const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId);
   const [mode, setMode] = useState<'move' | 'wallH' | 'wallV'>('move');
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -37,28 +38,36 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome }: GameCo
 
   const { stats, recordWin, recordLoss } = useStats();
 
+  const isLocalDuo = !roomId && !gameState.aiDifficulty;
+  // In local pass-and-play, whoever's turn it is controls the board on the shared device.
+  const boardPlayer: Player = roomId ? localPlayerId : isLocalDuo ? gameState.turn : localPlayerId;
+
   // Prevent double-recording on re-renders
   const hasRecordedRef = useRef(false);
   useEffect(() => {
     if (gameState.winner && !hasRecordedRef.current) {
       hasRecordedRef.current = true;
-      if (gameState.winner === localPlayerId) {
-        recordWin();
-      } else {
-        recordLoss();
-      }
+      const won = gameState.winner === localPlayerId;
+      if (won) recordWin();
+      else recordLoss();
+
+      if (onSurvivalResult) onSurvivalResult(won);
     }
     if (!gameState.winner) {
       hasRecordedRef.current = false;
     }
-  }, [gameState.winner, localPlayerId, recordWin, recordLoss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState.winner]);
 
   const isMyTurn = gameState.turn === localPlayerId && !gameState.winner;
+  const isBoardTurn = gameState.turn === boardPlayer && !gameState.winner;
 
   // Per-turn countdown — resets on each action (history.length is a reliable turn key)
+  const turnDuration = gameState.mode === 'blitz' ? BLITZ_TURN_DURATION : TURN_DURATION;
   const { secondsLeft: turnSecondsLeft, isUrgent: turnIsUrgent } = useTurnTimer(
-    isMyTurn,
+    isBoardTurn,
     gameState.history.length,
+    turnDuration,
   );
 
   // Configure AI if active
@@ -90,6 +99,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome }: GameCo
   }, [gameState.winner, playVictory]);
 
   const oppPlayerId = localPlayerId === 'p1' ? 'p2' : 'p1';
+  const displayOppId = isLocalDuo ? (boardPlayer === 'p1' ? 'p2' : 'p1') : oppPlayerId;
   const [activeTab, setActiveTab] = useState<'chat' | 'history'>(roomId ? 'chat' : 'history');
 
   return (
@@ -108,34 +118,35 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome }: GameCo
         {/* Opponent Card */}
         <div className="w-full max-w-[460px]">
           <PlayerCard
-            player={oppPlayerId}
-            name={gameState.names[oppPlayerId]}
-            wallsLeft={gameState.wallsLeft[oppPlayerId]}
-            isActive={gameState.turn === oppPlayerId && !gameState.winner}
-            isLocal={false}
+            player={displayOppId}
+            name={gameState.names[displayOppId]}
+            wallsLeft={gameState.wallsLeft[displayOppId]}
+            isActive={gameState.turn === displayOppId && !gameState.winner}
+            isLocal={isLocalDuo}
+            avatarLabel={isLocalDuo ? (displayOppId === 'p1' ? 'J1' : 'J2') : undefined}
           />
         </div>
 
         {/* Status Line */}
         <StatusLine
-          isMyTurn={isMyTurn}
+          isMyTurn={isLocalDuo ? true : isMyTurn}
           winner={gameState.winner}
-          opponentName={gameState.names[oppPlayerId]}
+          opponentName={gameState.names[displayOppId]}
         />
 
         {/* The Board */}
         <Board
           gameState={gameState}
-          localPlayer={localPlayerId}
+          localPlayer={boardPlayer}
           mode={mode}
           showPath={showPath}
-          onMove={(pos) => dispatchMove(localPlayerId, pos)}
-          onWall={(wall) => dispatchWall(localPlayerId, wall)}
+          onMove={(pos) => dispatchMove(boardPlayer, pos)}
+          onWall={(wall) => dispatchWall(boardPlayer, wall)}
         />
 
         {/* Path hint toggle */}
         {!gameState.winner && (
-          <div className="flex justify-center -mt-2">
+          <div className="flex justify-center -mt-2 gap-2">
             <button
               onClick={() => setShowPath(p => !p)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
@@ -153,21 +164,22 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome }: GameCo
         {/* My Card & Controls */}
         <div className="w-full max-w-[460px] flex flex-col gap-4">
           <PlayerCard
-            player={localPlayerId}
-            name={gameState.names[localPlayerId]}
-            wallsLeft={gameState.wallsLeft[localPlayerId]}
-            isActive={isMyTurn}
+            player={boardPlayer}
+            name={gameState.names[boardPlayer]}
+            wallsLeft={gameState.wallsLeft[boardPlayer]}
+            isActive={isBoardTurn}
             isLocal={true}
-            turnSecondsLeft={isMyTurn ? turnSecondsLeft : undefined}
+            turnSecondsLeft={isBoardTurn ? turnSecondsLeft : undefined}
             turnIsUrgent={turnIsUrgent}
+            avatarLabel={isLocalDuo ? (boardPlayer === 'p1' ? 'J1' : 'J2') : undefined}
           />
 
           {!gameState.winner && (
             <ModeControls
               mode={mode}
               setMode={setMode}
-              wallsLeft={gameState.wallsLeft[localPlayerId]}
-              isMyTurn={isMyTurn}
+              wallsLeft={gameState.wallsLeft[boardPlayer]}
+              isMyTurn={isBoardTurn}
             />
           )}
 

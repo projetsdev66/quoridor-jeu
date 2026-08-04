@@ -68,8 +68,8 @@ export function useGame(initialState?: GameState, roomId?: string) {
     fresh.aiDifficulty = gameState.aiDifficulty;
     fresh.roomId = roomId;
     fresh.names = gameState.names;
-    fresh.players = gameState.players;
-    
+    fresh.mode = gameState.mode;
+
     if (roomId) {
       updateGameState(roomId, fresh);
     } else {

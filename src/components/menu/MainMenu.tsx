@@ -1,18 +1,37 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy } from 'lucide-react';
+import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon } from 'lucide-react';
 import { type GameState, getFreshState } from '@/lib/gameLogic';
 import { generateRoomCode, createRoom, joinRoom } from '@/lib/firebase';
 import { useStats } from '@/hooks/useStats';
+import type { Difficulty } from '@/lib/aiEngine';
 
 interface MainMenuProps {
-  onStartSolo: (difficulty: 'easy' | 'medium' | 'hard', playerName: string) => void;
+  onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz') => void;
+  onStartDuo: (playerName: string) => void;
+  onStartSurvival: (playerName: string) => void;
+  onOpenPuzzles: () => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
   onRoomJoined: (roomId: string, state: GameState) => void;
 }
 
-export function MainMenu({ onStartSolo, onRoomCreated, onRoomJoined }: MainMenuProps) {
+const DIFFICULTIES: { id: Difficulty; label: string; desc: string }[] = [
+  { id: 'easy', label: 'Facile', desc: 'Pour apprendre les bases' },
+  { id: 'medium', label: 'Moyen', desc: 'Un défi équilibré' },
+  { id: 'hard', label: 'Difficile', desc: 'Préparez-vous à souffrir' },
+  { id: 'expert', label: 'Expert', desc: "L'IA joue à son maximum" },
+];
+
+export function MainMenu({
+  onStartSolo,
+  onStartDuo,
+  onStartSurvival,
+  onOpenPuzzles,
+  onRoomCreated,
+  onRoomJoined,
+}: MainMenuProps) {
   const [view, setView] = useState<'main' | 'solo' | 'multi'>('main');
+  const [pendingMode, setPendingMode] = useState<'classic' | 'blitz'>('classic');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,6 +44,11 @@ export function MainMenu({ onStartSolo, onRoomCreated, onRoomJoined }: MainMenuP
   const saveName = (name: string) => {
     setPlayerName(name);
     try { localStorage.setItem('quoridor_name', name); } catch { /* ignore */ }
+  };
+
+  const openDifficulty = (mode: 'classic' | 'blitz') => {
+    setPendingMode(mode);
+    setView('solo');
   };
 
   const handleCreateRoom = async () => {
@@ -66,15 +90,14 @@ export function MainMenu({ onStartSolo, onRoomCreated, onRoomJoined }: MainMenuP
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      <div className="text-center mb-10">
+      <div className="text-center mb-8">
         <h1 className="text-5xl font-serif font-bold text-[var(--color-brass)] tracking-widest mb-2">
           QUORIDOR
         </h1>
         <p className="text-[var(--color-ivory)]/70">L'art du labyrinthe</p>
 
-        {/* Stats badge */}
         {totalGames > 0 && (
-          <div className="mt-4 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--color-wood-dark)]/80 border border-[#3b2419] text-sm">
+          <div className="mt-4 inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-wood-dark)]/80 border border-[#3b2419] text-sm">
             <span className="flex items-center gap-1 text-[var(--color-brass)]">
               <Trophy className="w-3.5 h-3.5" />
               <span className="font-bold">{stats.wins}</span>
@@ -98,7 +121,7 @@ export function MainMenu({ onStartSolo, onRoomCreated, onRoomJoined }: MainMenuP
       <div className="relative bg-[var(--color-wood-dark)] rounded-2xl shadow-2xl p-6 border border-[#3b2419] min-h-[300px] overflow-hidden">
         <AnimatePresence mode="wait">
           {view === 'main' && (
-            <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4">
+            <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-3">
               {/* Player name input */}
               <div>
                 <label className="block text-xs text-[var(--color-ivory)]/50 mb-1 font-bold tracking-wide uppercase">
@@ -115,25 +138,69 @@ export function MainMenu({ onStartSolo, onRoomCreated, onRoomJoined }: MainMenuP
               </div>
 
               <button
-                onClick={() => setView('solo')}
-                className="w-full flex items-center justify-between p-4 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
+                onClick={() => openDifficulty('classic')}
+                className="w-full flex items-center justify-between p-3.5 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
               >
                 <div className="flex items-center gap-3">
-                  <User className="text-[var(--color-brass)]" />
-                  <span className="font-bold text-lg">Jouer en Solo</span>
+                  <User className="text-[var(--color-brass)] w-5 h-5" />
+                  <span className="font-bold">Classique — vs IA</span>
                 </div>
-                <ChevronRight className="w-5 h-5 opacity-50" />
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
+
+              <button
+                onClick={() => openDifficulty('blitz')}
+                className="w-full flex items-center justify-between p-3.5 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
+              >
+                <div className="flex items-center gap-3">
+                  <Zap className="text-[var(--color-brass)] w-5 h-5" />
+                  <span className="font-bold">Blitz — 20s par coup</span>
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
+
+              <button
+                onClick={() => onStartSurvival(playerName.trim())}
+                className="w-full flex items-center justify-between p-3.5 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield className="text-[var(--color-brass)] w-5 h-5" />
+                  <span className="font-bold">Survie — l'IA monte en puissance</span>
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
+
+              <button
+                onClick={() => onStartDuo(playerName.trim())}
+                className="w-full flex items-center justify-between p-3.5 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="text-[var(--color-brass)] w-5 h-5" />
+                  <span className="font-bold">Duo local — même appareil</span>
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
+
+              <button
+                onClick={onOpenPuzzles}
+                className="w-full flex items-center justify-between p-3.5 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
+              >
+                <div className="flex items-center gap-3">
+                  <PuzzleIcon className="text-[var(--color-brass)] w-5 h-5" />
+                  <span className="font-bold">Puzzles</span>
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-50" />
               </button>
 
               <button
                 onClick={() => setView('multi')}
-                className="w-full flex items-center justify-between p-4 bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] text-[var(--color-ivory)] rounded-xl transition-colors border border-transparent hover:border-[#5c3a24]"
+                className="w-full flex items-center justify-between p-3.5 bg-[var(--color-brass)]/10 hover:bg-[var(--color-brass)]/20 text-[var(--color-ivory)] rounded-xl transition-colors border border-[var(--color-brass)]/30"
               >
                 <div className="flex items-center gap-3">
-                  <Users className="text-[var(--color-brass)]" />
-                  <span className="font-bold text-lg">Multijoueur en ligne</span>
+                  <Users className="text-[var(--color-brass)] w-5 h-5" />
+                  <span className="font-bold">Multijoueur en ligne</span>
                 </div>
-                <ChevronRight className="w-5 h-5 opacity-50" />
+                <ChevronRight className="w-4 h-4 opacity-50" />
               </button>
             </motion.div>
           )}
@@ -144,20 +211,21 @@ export function MainMenu({ onStartSolo, onRoomCreated, onRoomJoined }: MainMenuP
                 <ArrowLeft className="w-4 h-4" /> Retour
               </button>
 
-              <h3 className="text-xl font-serif text-[var(--color-brass)] mb-2">Difficulté de l'IA</h3>
+              <h3 className="text-xl font-serif text-[var(--color-brass)] mb-1">Difficulté de l'IA</h3>
+              <p className="text-xs text-[var(--color-ivory)]/40 mb-1">
+                Mode {pendingMode === 'blitz' ? 'Blitz (20s par coup)' : 'Classique'}
+              </p>
 
-              <button onClick={() => onStartSolo('easy', playerName.trim())} className="p-3 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]">
-                <div className="font-bold text-[var(--color-ivory)]">Facile</div>
-                <div className="text-sm text-[var(--color-ivory)]/50">Pour apprendre les bases</div>
-              </button>
-              <button onClick={() => onStartSolo('medium', playerName.trim())} className="p-3 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]">
-                <div className="font-bold text-[var(--color-ivory)]">Moyen</div>
-                <div className="text-sm text-[var(--color-ivory)]/50">Un défi équilibré</div>
-              </button>
-              <button onClick={() => onStartSolo('hard', playerName.trim())} className="p-3 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]">
-                <div className="font-bold text-[var(--color-ivory)]">Difficile</div>
-                <div className="text-sm text-[var(--color-ivory)]/50">Préparez-vous à souffrir</div>
-              </button>
+              {DIFFICULTIES.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => onStartSolo(d.id, playerName.trim(), pendingMode)}
+                  className="p-3 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]"
+                >
+                  <div className="font-bold text-[var(--color-ivory)]">{d.label}</div>
+                  <div className="text-sm text-[var(--color-ivory)]/50">{d.desc}</div>
+                </button>
+              ))}
             </motion.div>
           )}
 

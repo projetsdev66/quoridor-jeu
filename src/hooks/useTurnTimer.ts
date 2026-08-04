@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 
-export const TURN_DURATION = 60; // seconds per turn
+export const TURN_DURATION = 60; // seconds per turn (classic mode default)
+export const BLITZ_TURN_DURATION = 20; // seconds per turn (blitz mode)
 
-export function useTurnTimer(isActive: boolean, turnKey: number | string) {
-  const [secondsLeft, setSecondsLeft] = useState(TURN_DURATION);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+export function useTurnTimer(isActive: boolean, turnKey: number | string, duration: number = TURN_DURATION) {
+  const [secondsLeft, setSecondsLeft] = useState(duration);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Reset when the turn changes
+  // Reset when the turn changes or the configured duration changes
   useEffect(() => {
-    setSecondsLeft(TURN_DURATION);
-  }, [turnKey]);
+    setSecondsLeft(duration);
+  }, [turnKey, duration]);
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -25,8 +26,8 @@ export function useTurnTimer(isActive: boolean, turnKey: number | string) {
     };
   }, [isActive]);
 
-  const progress = secondsLeft / TURN_DURATION; // 1 → 0
-  const isUrgent = secondsLeft <= 10 && isActive;
+  const progress = secondsLeft / duration; // 1 → 0
+  const isUrgent = secondsLeft <= Math.min(10, Math.ceil(duration / 3)) && isActive;
 
   return { secondsLeft, isUrgent, progress };
 }

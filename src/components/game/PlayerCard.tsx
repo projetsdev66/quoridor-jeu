@@ -9,9 +9,10 @@ interface PlayerCardProps {
   isLocal: boolean;
   turnSecondsLeft?: number;
   turnIsUrgent?: boolean;
+  avatarLabel?: string;
 }
 
-export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent }: PlayerCardProps) {
+export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, avatarLabel }: PlayerCardProps) {
   const showTimer = isActive && isLocal && turnSecondsLeft !== undefined;
   const progress = turnSecondsLeft !== undefined ? turnSecondsLeft / TURN_DURATION : 1;
 
@@ -29,7 +30,7 @@ export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSec
             player === 'p1' ? 'bg-[var(--color-p1)]' : 'bg-[var(--color-p2)]'
           }`}
         >
-          {isLocal ? 'Moi' : 'IA'}
+          {avatarLabel ?? (isLocal ? 'Moi' : 'IA')}
         </div>
         <div className="flex-1">
           <div className="font-serif font-bold text-lg text-[var(--color-ivory)] flex items-center justify-between">
