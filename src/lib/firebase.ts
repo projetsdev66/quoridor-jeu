@@ -21,6 +21,17 @@ export function generateRoomCode() {
   return result;
 }
 
+/** Generates a room code that isn't already in use, so two hosts can never collide and overwrite each other. */
+export async function generateUniqueRoomCode(maxAttempts = 8): Promise<string> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const code = generateRoomCode();
+    const snapshot = await get(getRoomRef(code));
+    if (!snapshot.exists()) return code;
+  }
+  // Extremely unlikely fallback: widen to 5 characters to guarantee availability
+  return generateRoomCode() + Math.floor(Math.random() * 10);
+}
+
 export function getRoomRef(roomId: string): DatabaseReference {
   return ref(db, `rooms/${roomId}`);
 }

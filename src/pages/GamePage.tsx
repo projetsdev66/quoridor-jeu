@@ -2,10 +2,19 @@ import { useState } from 'react';
 import { type GameState, type Player, getFreshState } from '@/lib/gameLogic';
 import { type Difficulty } from '@/lib/aiEngine';
 import { MainMenu } from '@/components/menu/MainMenu';
+import { OnboardingScreen } from '@/components/menu/OnboardingScreen';
 import { GameCore } from '@/components/game/GameCore';
 import { PuzzleScreen } from '@/components/puzzle/PuzzleScreen';
 
-type View = 'menu' | 'game' | 'puzzles';
+type View = 'onboarding' | 'menu' | 'game' | 'puzzles';
+
+function hasOnboarded(): boolean {
+  try {
+    return localStorage.getItem('quoridor_onboarded') === '1';
+  } catch {
+    return true; // if storage is unavailable, don't block the menu
+  }
+}
 
 const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   easy: 'Facile',
@@ -22,7 +31,7 @@ function survivalDifficultyForRound(round: number): Difficulty {
 }
 
 export function GamePage() {
-  const [view, setView] = useState<View>('menu');
+  const [view, setView] = useState<View>(() => (hasOnboarded() ? 'menu' : 'onboarding'));
   const [activeGame, setActiveGame] = useState<{
     state: GameState;
     roomId?: string;
@@ -108,6 +117,23 @@ export function GamePage() {
     setSurvivalActive(false);
     setView('menu');
   };
+
+  const handleOnboardingDone = (name: string) => {
+    if (name) {
+      setPlayerName(name);
+      try { localStorage.setItem('quoridor_name', name); } catch { /* ignore */ }
+    }
+    try { localStorage.setItem('quoridor_onboarded', '1'); } catch { /* ignore */ }
+    setView('menu');
+  };
+
+  if (view === 'onboarding') {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center p-4">
+        <OnboardingScreen onDone={handleOnboardingDone} />
+      </div>
+    );
+  }
 
   if (view === 'game' && activeGame) {
     return (

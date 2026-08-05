@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon } from 'lucide-react';
+import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon, HelpCircle } from 'lucide-react';
 import { type GameState, getFreshState } from '@/lib/gameLogic';
-import { generateRoomCode, createRoom, joinRoom } from '@/lib/firebase';
+import { generateUniqueRoomCode, createRoom, joinRoom } from '@/lib/firebase';
 import { useStats } from '@/hooks/useStats';
 import type { Difficulty } from '@/lib/aiEngine';
+import { RulesOverlay } from '@/components/game/RulesOverlay';
 
 interface MainMenuProps {
   onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz') => void;
@@ -31,6 +32,7 @@ export function MainMenu({
   onRoomJoined,
 }: MainMenuProps) {
   const [view, setView] = useState<'main' | 'solo' | 'multi'>('main');
+  const [showRules, setShowRules] = useState(false);
   const [pendingMode, setPendingMode] = useState<'classic' | 'blitz'>('classic');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
@@ -53,7 +55,7 @@ export function MainMenu({
 
   const handleCreateRoom = async () => {
     setLoading(true);
-    const code = generateRoomCode();
+    const code = await generateUniqueRoomCode();
     const state = getFreshState();
     state.roomId = code;
     state.names.p1 = playerName.trim() || 'Hôte';
@@ -95,6 +97,14 @@ export function MainMenu({
           QUORIDOR
         </h1>
         <p className="text-[var(--color-ivory)]/70">L'art du labyrinthe</p>
+
+        <button
+          onClick={() => setShowRules(true)}
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--color-brass)]/80 hover:text-[var(--color-brass)] transition-colors"
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+          Comment jouer ?
+        </button>
 
         {totalGames > 0 && (
           <div className="mt-4 inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-wood-dark)]/80 border border-[#3b2419] text-sm">
@@ -274,6 +284,10 @@ export function MainMenu({
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {showRules && <RulesOverlay key="rules-overlay" onClose={() => setShowRules(false)} />}
+      </AnimatePresence>
     </div>
   );
 }
