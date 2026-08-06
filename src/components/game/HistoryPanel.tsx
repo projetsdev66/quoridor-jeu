@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { Move, RectangleHorizontal, RectangleVertical } from 'lucide-react';
 import { type GameState } from '@/lib/gameLogic';
 
 interface HistoryPanelProps {
@@ -24,25 +25,35 @@ export function HistoryPanel({ history, names }: HistoryPanelProps) {
       </div>
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-3 flex flex-col gap-2"
+        className="flex-1 overflow-y-auto p-2 flex flex-col gap-1"
       >
         {history.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-[var(--color-ivory)]/30 text-sm italic">
             Aucun coup joué
           </div>
         ) : (
-          history.map((h, i) => (
-            <div key={i} className="text-sm border-b border-[#3b2419]/50 pb-1">
-              <span className={`font-bold mr-2 ${h.player === 'p1' ? 'text-[var(--color-p1)]' : 'text-[var(--color-p2)]'}`}>
-                {names[h.player]}:
-              </span>
-              <span className="text-[var(--color-ivory)]/80">
-                {h.action.type === 'move' 
-                  ? `Déplacement en (${h.action.pos.r + 1}, ${h.action.pos.c + 1})` 
-                  : `Mur ${h.action.wall.orientation} en (${h.action.wall.row + 1}, ${h.action.wall.col + 1})`}
-              </span>
-            </div>
-          ))
+          history.map((h, i) => {
+            const Icon = h.action.type === 'move' ? Move : h.action.wall.orientation === 'H' ? RectangleHorizontal : RectangleVertical;
+            return (
+              <div key={i} className="flex items-center gap-2 text-sm px-1.5 py-1 rounded-md odd:bg-black/10">
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                    h.player === 'p1' ? 'bg-[var(--color-p1)]/20' : 'bg-[var(--color-p2)]/20'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${h.player === 'p1' ? 'text-[var(--color-p1)]' : 'text-[var(--color-p2)]'}`} />
+                </div>
+                <span className={`font-bold shrink-0 ${h.player === 'p1' ? 'text-[var(--color-p1)]' : 'text-[var(--color-p2)]'}`}>
+                  {names[h.player]}
+                </span>
+                <span className="text-[var(--color-ivory)]/60 text-xs truncate">
+                  {h.action.type === 'move'
+                    ? `case (${h.action.pos.r + 1}, ${h.action.pos.c + 1})`
+                    : `mur ${h.action.wall.orientation === 'H' ? 'horizontal' : 'vertical'}`}
+                </span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

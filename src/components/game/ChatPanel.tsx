@@ -37,8 +37,8 @@ export function ChatPanel({ chat, onSend }: ChatPanelProps) {
           </div>
         ) : (
           chat.map((msg, i) => (
-            <div key={i} className="text-sm">
-              <span className="font-bold text-[var(--color-brass)] mr-2">{msg.sender}:</span>
+            <div key={i} className="max-w-[85%] bg-[#180f0a]/60 border border-[#3b2419] rounded-lg px-2.5 py-1.5 text-sm">
+              <span className="font-bold text-[var(--color-brass)] block text-xs mb-0.5">{msg.sender}</span>
               <span className="text-[var(--color-ivory)]/90 break-words">{msg.text}</span>
             </div>
           ))

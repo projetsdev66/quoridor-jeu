@@ -18,7 +18,6 @@ import { GameOverlay } from '@/components/game/GameOverlay';
 import { RulesOverlay } from '@/components/game/RulesOverlay';
 import { ChatPanel } from '@/components/game/ChatPanel';
 import { HistoryPanel } from '@/components/game/HistoryPanel';
-import { PassDeviceOverlay } from '@/components/game/PassDeviceOverlay';
 
 interface GameCoreProps {
   initialState: GameState;
@@ -45,16 +44,6 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   const isLocalDuo = !roomId && !gameState.aiDifficulty;
   // In local pass-and-play, whoever's turn it is controls the board on the shared device.
   const boardPlayer: Player = roomId ? localPlayerId : isLocalDuo ? gameState.turn : localPlayerId;
-
-  // Duo local: show a "pass the device" screen whenever the turn changes hands.
-  const prevTurnRef = useRef(gameState.turn);
-  const [passDevice, setPassDevice] = useState(false);
-  useEffect(() => {
-    if (isLocalDuo && !gameState.winner && gameState.turn !== prevTurnRef.current) {
-      setPassDevice(true);
-    }
-    prevTurnRef.current = gameState.turn;
-  }, [gameState.turn, gameState.winner, isLocalDuo]);
 
   // Prevent double-recording on re-renders
   const hasRecordedRef = useRef(false);
@@ -264,18 +253,6 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
 
       <AnimatePresence>
         {showRules && <RulesOverlay key="rules-overlay" onClose={() => setShowRules(false)} />}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {passDevice && !gameState.winner && (
-          <PassDeviceOverlay
-            key="pass-device"
-            nextPlayer={gameState.turn}
-            nextPlayerLabel={gameState.turn === 'p1' ? 'J1' : 'J2'}
-            nextPlayerName={gameState.names[gameState.turn]}
-            onReady={() => setPassDevice(false)}
-          />
-        )}
       </AnimatePresence>
     </div>
   );
