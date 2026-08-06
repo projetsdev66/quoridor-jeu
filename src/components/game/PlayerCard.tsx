@@ -9,51 +9,58 @@ interface PlayerCardProps {
   isLocal: boolean;
   turnSecondsLeft?: number;
   turnIsUrgent?: boolean;
+  turnDuration?: number;
   avatarLabel?: string;
 }
 
-export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, avatarLabel }: PlayerCardProps) {
+export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel }: PlayerCardProps) {
   const showTimer = isActive && isLocal && turnSecondsLeft !== undefined;
-  const progress = turnSecondsLeft !== undefined ? turnSecondsLeft / TURN_DURATION : 1;
+  const progress = turnSecondsLeft !== undefined ? Math.max(0, Math.min(1, turnSecondsLeft / turnDuration)) : 1;
 
   return (
     <div
-      className={`relative p-4 rounded-xl transition-all duration-300 ${
+      className={`relative overflow-hidden rounded-2xl p-4 transition-all duration-300 ${
         isActive
-          ? 'bg-[var(--color-wood-medium)] shadow-[0_0_20px_rgba(201,154,82,0.15)] scale-[1.02] border-[1px] border-[var(--color-brass)]/30'
-          : 'bg-[var(--color-wood-dark)] border-[1px] border-transparent opacity-80'
+          ? 'border border-[var(--color-brass)]/30 bg-[linear-gradient(135deg,rgba(59,36,25,0.95),rgba(36,22,16,0.98))] shadow-[0_0_24px_rgba(201,154,82,0.14)] scale-[1.02]'
+          : 'border border-transparent bg-[var(--color-wood-dark)] opacity-85'
       }`}
     >
-      <div className="flex items-center gap-3">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_45%)]" />
+
+      <div className="relative flex items-center gap-3">
         <div
-          className={`w-10 h-10 rounded-full shadow-inner flex items-center justify-center font-bold text-white ${
+          className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/10 font-bold text-white shadow-inner ${
             player === 'p1' ? 'bg-[var(--color-p1)]' : 'bg-[var(--color-p2)]'
           }`}
         >
           {avatarLabel ?? (isLocal ? 'Moi' : 'IA')}
         </div>
-        <div className="flex-1">
-          <div className="font-serif font-bold text-lg text-[var(--color-ivory)] flex items-center justify-between">
-            <span>{name}</span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3 font-serif text-lg font-bold text-[var(--color-ivory)]">
+            <span className="truncate">{name}</span>
             <div className="flex items-center gap-2">
               {showTimer && (
                 <span
-                  className={`text-sm font-mono font-bold tabular-nums transition-colors ${
-                    turnIsUrgent ? 'text-red-400' : 'text-[var(--color-brass)]'
-                  } ${turnIsUrgent ? 'animate-pulse' : ''}`}
+                  className={`rounded-full px-2 py-0.5 text-sm font-mono font-bold tabular-nums transition-colors ${
+                    turnIsUrgent
+                      ? 'bg-red-400/10 text-red-300'
+                      : 'bg-[var(--color-brass)]/12 text-[var(--color-brass)]'
+                  }`}
                 >
                   {turnSecondsLeft}s
                 </span>
               )}
               {isActive && (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-brass)] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-brass)]"></span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-brass)] opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--color-brass)]" />
                 </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-1">
+
+          <div className="mt-2 flex items-center gap-1">
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
@@ -62,14 +69,13 @@ export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSec
                 }`}
               />
             ))}
-            <span className="text-xs text-[var(--color-ivory)]/60 ml-2 font-mono">{wallsLeft}</span>
+            <span className="ml-2 font-mono text-xs text-[var(--color-ivory)]/65">{wallsLeft} murs</span>
           </div>
         </div>
       </div>
 
-      {/* Turn countdown progress bar */}
       {showTimer && (
-        <div className="mt-2 h-1 bg-[#180f0a] rounded-full overflow-hidden">
+        <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-[#180f0a]">
           <div
             className={`h-full rounded-full transition-all duration-1000 ${
               turnIsUrgent ? 'bg-red-400' : 'bg-[var(--color-brass)]'

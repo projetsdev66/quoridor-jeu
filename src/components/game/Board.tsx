@@ -20,11 +20,13 @@ interface BoardProps {
   localPlayer: Player;
   mode: 'move' | 'wallH' | 'wallV';
   showPath?: boolean;
+  confirmWalls?: boolean;
+  reducedMotion?: boolean;
   onMove: (pos: Position) => void;
   onWall: (wall: Wall) => void;
 }
 
-export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }: BoardProps) {
+export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = true, reducedMotion = false, onMove, onWall }: BoardProps) {
   const [hoveredWall, setHoveredWall] = useState<Wall | null>(null);
   const [pendingWall, setPendingWall] = useState<Wall | null>(null);
 
@@ -39,31 +41,32 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
     }
   }, [isMyTurn, mode]);
 
+  useEffect(() => {
+    if (!confirmWalls) {
+      setPendingWall(null);
+    }
+  }, [confirmWalls]);
+
   const validMoves = useMemo(() => {
     if (mode !== 'move' || !isMyTurn) return [];
     return getValidMoves(myPos, oppPos, gameState.walls);
   }, [mode, isMyTurn, myPos, oppPos, gameState.walls]);
 
-  // Path hint: shortest path cells for the local player (excluding current position)
   const myGoalRow = localPlayer === 'p1' ? SIZE - 1 : 0;
   const pathHintSet = useMemo(() => {
     if (!showPath) return new Set<string>();
     const path = getShortestPath(myPos, myGoalRow, gameState.walls);
-    // Skip index 0 (current position), highlight the rest
-    return new Set(path.slice(1).map(p => `${p.r},${p.c}`));
+    return new Set(path.slice(1).map((p) => `${p.r},${p.c}`));
   }, [showPath, myPos, myGoalRow, gameState.walls]);
 
-  // Last move highlight (opponent's last move)
   const lastMovePos = useMemo(() => {
     if (gameState.lastAction?.type === 'move') return gameState.lastAction.pos;
     return null;
   }, [gameState.lastAction]);
 
   const handleCellClick = (r: number, c: number) => {
-    if (mode === 'move' && isMyTurn) {
-      if (validMoves.some(m => m.r === r && m.c === c)) {
-        onMove({ r, c });
-      }
+    if (mode === 'move' && isMyTurn && validMoves.some((m) => m.r === r && m.c === c)) {
+      onMove({ r, c });
     }
   };
 
@@ -75,9 +78,20 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
 
   const handleWallLeave = () => setHoveredWall(null);
 
+  const placeWall = (wall: Wall) => {
+    onWall(wall);
+    setPendingWall(null);
+    setHoveredWall(null);
+  };
+
   const handleWallClick = (wall: Wall) => {
     if (!mode.startsWith('wall') || !isMyTurn) return;
     if (!canPlaceWall(wall, gameState)) return;
+
+    if (!confirmWalls) {
+      placeWall(wall);
+      return;
+    }
 
     const isSame =
       pendingWall &&
@@ -86,9 +100,7 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
       pendingWall.orientation === wall.orientation;
 
     if (isSame) {
-      onWall(wall);
-      setPendingWall(null);
-      setHoveredWall(null);
+      placeWall(wall);
     } else {
       setPendingWall(wall);
       setHoveredWall(wall);
@@ -99,7 +111,7 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
   let moveIndex = 0;
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
-      const isValid = validMoves.some(m => m.r === r && m.c === c);
+      const isValid = validMoves.some((m) => m.r === r && m.c === c);
       const isLastMove = lastMovePos?.r === r && lastMovePos?.c === c;
       const isPathHint = pathHintSet.has(`${r},${c}`);
       cells.push(
@@ -110,6 +122,7 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
           isValidMove={isValid}
           isLastMove={isLastMove}
           isPathHint={isPathHint && !isValid}
+          reducedMotion={reducedMotion}
           onClick={() => handleCellClick(r, c)}
           delayIndex={isValid ? moveIndex++ : 0}
         />,
@@ -148,30 +161,34 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
   const previewWall = pendingWall ?? hoveredWall;
 
   return (
-    <div className="relative w-full max-w-[460px] lg:max-w-[520px] aspect-square mx-auto bg-[var(--color-wood-dark)] rounded-lg shadow-2xl p-[3%] overflow-visible">
-      {/* Wooden Frame */}
+    <div className="relative mx-auto aspect-square w-full max-w-[460px] overflow-visible rounded-[26px] bg-[var(--color-wood-dark)] p-[3%] shadow-[0_24px_70px_rgba(0,0,0,0.42)] lg:max-w-[520px]">
       <div
-        className={`absolute inset-0 border-[6px] rounded-lg pointer-events-none transition-colors duration-300 ${
+        className={`pointer-events-none absolute inset-0 rounded-[26px] border-[6px] transition-colors duration-300 ${
           gameState.winner
             ? 'border-[var(--color-brass)]'
             : gameState.turn === 'p1'
-            ? 'border-[var(--color-p1)]/60'
-            : 'border-[var(--color-p2)]/60'
+              ? 'border-[var(--color-p1)]/60'
+              : 'border-[var(--color-p2)]/60'
         }`}
       />
 
-      {/* Board Surface */}
-      <div className="relative w-full h-full bg-[#eadfc4] shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]">
+      <div className="pointer-events-none absolute inset-3 rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%)]" />
+
+      <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfc4] shadow-[inset_0_0_24px_rgba(0,0,0,0.45)]">
         {cells}
 
-        {/* Placed Walls */}
         <AnimatePresence>
-          {gameState.walls.map(w => (
-            <WallRender key={`w-${w.orientation}-${w.row}-${w.col}`} r={w.row} c={w.col} orientation={w.orientation} />
+          {gameState.walls.map((w) => (
+            <WallRender
+              key={`w-${w.orientation}-${w.row}-${w.col}`}
+              r={w.row}
+              c={w.col}
+              orientation={w.orientation}
+              reducedMotion={reducedMotion}
+            />
           ))}
         </AnimatePresence>
 
-        {/* Hover / Pending Wall Preview */}
         <AnimatePresence>
           {previewWall && isMyTurn && (
             <WallRender
@@ -180,29 +197,23 @@ export function Board({ gameState, localPlayer, mode, showPath, onMove, onWall }
               c={previewWall.col}
               orientation={previewWall.orientation}
               isPreview
+              reducedMotion={reducedMotion}
             />
           )}
         </AnimatePresence>
 
-        {/* Pawns */}
-        <Pawn player="p1" r={gameState.pos.p1.r} c={gameState.pos.p1.c} isActive={gameState.turn === 'p1' && !gameState.winner} />
-        <Pawn player="p2" r={gameState.pos.p2.r} c={gameState.pos.p2.c} isActive={gameState.turn === 'p2' && !gameState.winner} />
+        <Pawn player="p1" r={gameState.pos.p1.r} c={gameState.pos.p1.c} isActive={gameState.turn === 'p1' && !gameState.winner} reducedMotion={reducedMotion} />
+        <Pawn player="p2" r={gameState.pos.p2.r} c={gameState.pos.p2.c} isActive={gameState.turn === 'p2' && !gameState.winner} reducedMotion={reducedMotion} />
 
-        {/* Wall Interaction Slots */}
         {wallSlots}
       </div>
 
-      {/* Mobile Confirm Button for Pending Wall */}
       <AnimatePresence>
-        {pendingWall && isMyTurn && (
-          <div className="absolute -bottom-16 left-0 right-0 flex justify-center z-50">
+        {pendingWall && isMyTurn && confirmWalls && (
+          <div className="absolute -bottom-16 left-0 right-0 z-50 flex justify-center">
             <button
-              className="bg-[var(--color-brass)] text-[#180f0a] px-6 py-2 rounded-full font-bold text-lg shadow-lg active:scale-95 transition-transform"
-              onClick={() => {
-                onWall(pendingWall);
-                setPendingWall(null);
-                setHoveredWall(null);
-              }}
+              className="rounded-full bg-[var(--color-brass)] px-6 py-2 text-base font-bold text-[#180f0a] shadow-lg transition-transform active:scale-95"
+              onClick={() => placeWall(pendingWall)}
             >
               Confirmer le mur
             </button>

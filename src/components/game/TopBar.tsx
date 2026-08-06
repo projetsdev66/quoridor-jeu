@@ -1,57 +1,82 @@
-import { Volume2, VolumeX, HelpCircle, LogOut } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { Copy, HelpCircle, LogOut, Settings2, Volume2, VolumeX } from 'lucide-react';
 
 interface TopBarProps {
   soundEnabled: boolean;
   toggleSound: () => void;
   onQuit: () => void;
   onRules: () => void;
+  onSettings: () => void;
+  onCopyRoom?: () => void;
   roomId?: string;
   gameTime?: string;
 }
 
-export function TopBar({ soundEnabled, toggleSound, onQuit, onRules, roomId, gameTime }: TopBarProps) {
+function IconButton({ title, onClick, children, danger }: { title: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
   return (
-    <div className="flex items-center justify-between px-3 sm:px-4 py-3 bg-[var(--color-wood-dark)] border-b border-[#3b2419] gap-2">
-      <div className="flex items-center flex-wrap gap-2 sm:gap-4 min-w-0">
-        <h1 className="font-serif font-bold text-lg sm:text-xl text-[var(--color-brass)] tracking-widest uppercase shrink-0">
-          QUORIDOR
-        </h1>
-        {gameTime && (
-          <div className="font-mono text-[var(--color-ivory)]/70 text-sm shrink-0">
-            {gameTime}
+    <button
+      onClick={onClick}
+      className={`h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full transition-colors ${
+        danger
+          ? 'text-red-400 hover:bg-red-400/10 hover:text-red-300'
+          : 'text-[var(--color-ivory)]/70 hover:bg-[var(--color-wood-medium)] hover:text-[var(--color-brass)]'
+      }`}
+      title={title}
+      aria-label={title}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function TopBar({ soundEnabled, toggleSound, onQuit, onRules, onSettings, onCopyRoom, roomId, gameTime }: TopBarProps) {
+  return (
+    <div className="sticky top-0 z-40 border-b border-[#3b2419] bg-[var(--color-wood-dark)]/92 px-3 py-3 backdrop-blur sm:px-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="shrink-0 font-serif text-lg font-bold uppercase tracking-widest text-[var(--color-brass)] sm:text-xl">
+              QUORIDOR
+            </h1>
+
+            {gameTime && (
+              <div className="rounded-full border border-[#3b2419] bg-[#180f0a] px-2.5 py-1 font-mono text-xs text-[var(--color-ivory)]/75 sm:text-sm">
+                {gameTime}
+              </div>
+            )}
+
+            {roomId && (
+              <div className="flex items-center gap-1 rounded-full border border-[#3b2419] bg-[#180f0a] px-2 py-1 text-xs sm:text-sm">
+                <span className="text-[var(--color-ivory)]/45">Salle</span>
+                <span className="font-mono tracking-[0.25em] text-[var(--color-ivory)]">{roomId}</span>
+                {onCopyRoom && (
+                  <button
+                    onClick={onCopyRoom}
+                    className="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ivory)]/60 transition-colors hover:bg-[var(--color-wood-medium)] hover:text-[var(--color-brass)]"
+                    title="Copier le code"
+                    aria-label="Copier le code de la salle"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        )}
-        {roomId && (
-          <div className="flex items-center bg-[#180f0a] px-3 py-1 rounded border border-[#3b2419] shrink-0">
-            <span className="text-[var(--color-ivory)]/50 text-xs mr-2">Salle</span>
-            <span className="font-mono text-sm text-[var(--color-ivory)] tracking-widest">{roomId}</span>
-          </div>
-        )}
-      </div>
-      
-      <div className="flex items-center gap-1 shrink-0">
-        <button 
-          onClick={toggleSound}
-          className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-[var(--color-ivory)]/70 hover:text-[var(--color-brass)] transition-colors rounded-full hover:bg-[var(--color-wood-medium)]"
-          title="Son"
-        >
-          {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-        </button>
-        <button 
-          onClick={onRules}
-          className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-[var(--color-ivory)]/70 hover:text-[var(--color-brass)] transition-colors rounded-full hover:bg-[var(--color-wood-medium)]"
-          title="Règles"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </button>
-        <button 
-          onClick={onQuit}
-          className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-red-400 hover:text-red-300 transition-colors rounded-full hover:bg-red-400/10"
-          title="Quitter"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <IconButton title="Son" onClick={toggleSound}>
+            {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+          </IconButton>
+          <IconButton title="Paramètres" onClick={onSettings}>
+            <Settings2 className="h-5 w-5" />
+          </IconButton>
+          <IconButton title="Règles" onClick={onRules}>
+            <HelpCircle className="h-5 w-5" />
+          </IconButton>
+          <IconButton title="Quitter" onClick={onQuit} danger>
+            <LogOut className="h-5 w-5" />
+          </IconButton>
+        </div>
       </div>
     </div>
   );
