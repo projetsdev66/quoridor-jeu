@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Frown, RotateCcw, Home, Flame, Star } from 'lucide-react';
+import { Trophy, Frown, RotateCcw, Home, Flame, Star, ArrowRight, Shield, Award } from 'lucide-react';
 import { type Player } from '@/lib/gameLogic';
 import { type Stats } from '@/hooks/useStats';
 
@@ -10,9 +10,29 @@ interface GameOverlayProps {
   stats?: Stats;
   onRestart: () => void;
   onHome: () => void;
+  isSurvival?: boolean;
+  survivalRoundNumber?: number;
+  roundsSurvived?: number;
+  bestRound?: number;
+  isNewRecord?: boolean;
+  onContinueSurvival?: () => void;
+  onRestartSurvival?: () => void;
 }
 
-export function GameOverlay({ winner, localPlayer, stats, onRestart, onHome }: GameOverlayProps) {
+export function GameOverlay({
+  winner,
+  localPlayer,
+  stats,
+  onRestart,
+  onHome,
+  isSurvival,
+  survivalRoundNumber,
+  roundsSurvived,
+  bestRound,
+  isNewRecord,
+  onContinueSurvival,
+  onRestartSurvival,
+}: GameOverlayProps) {
   if (!winner) return null;
 
   const isWin = winner === localPlayer;
@@ -30,6 +50,22 @@ export function GameOverlay({ winner, localPlayer, stats, onRestart, onHome }: G
       })),
     [],
   );
+
+  const title = isSurvival
+    ? isWin
+      ? `Manche ${survivalRoundNumber ?? ''} remportée !`
+      : 'Série terminée'
+    : isWin
+      ? 'Victoire !'
+      : 'Défaite';
+
+  const subtitle = isSurvival
+    ? isWin
+      ? "Préparez-vous, l'IA devient plus forte."
+      : `Vous avez survécu à ${roundsSurvived ?? 0} manche${(roundsSurvived ?? 0) > 1 ? 's' : ''}.`
+    : isWin
+      ? 'Vous avez brillamment atteint le côté opposé.'
+      : 'Votre adversaire a été plus rusé cette fois-ci.';
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -70,7 +106,9 @@ export function GameOverlay({ winner, localPlayer, stats, onRestart, onHome }: G
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', delay: 0.15, damping: 15, stiffness: 250 }}
         >
-          {isWin ? (
+          {isSurvival ? (
+            <Shield className={`w-20 h-20 ${isWin ? 'text-[var(--color-brass)]' : 'text-[var(--color-ivory)]/40'}`} />
+          ) : isWin ? (
             <Trophy className="w-20 h-20 text-[var(--color-brass)]" />
           ) : (
             <Frown className="w-20 h-20 text-[var(--color-ivory)]/40" />
@@ -83,7 +121,7 @@ export function GameOverlay({ winner, localPlayer, stats, onRestart, onHome }: G
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          {isWin ? 'Victoire !' : 'Défaite'}
+          {title}
         </motion.h2>
         <motion.p
           className="text-[var(--color-ivory)]/70 mb-6 text-sm"
@@ -91,13 +129,34 @@ export function GameOverlay({ winner, localPlayer, stats, onRestart, onHome }: G
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          {isWin
-            ? 'Vous avez brillamment atteint le côté opposé.'
-            : 'Votre adversaire a été plus rusé cette fois-ci.'}
+          {subtitle}
         </motion.p>
 
-        {/* Stats bar */}
-        {stats && (
+        {/* Survival record block — shown on loss */}
+        {isSurvival && !isWin && (
+          <motion.div
+            className="mb-6 py-3 px-4 rounded-xl bg-[#180f0a] border border-[#3b2419] flex items-center justify-center gap-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+          >
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-[var(--color-brass)] font-bold text-xl">
+                <Award className="w-4 h-4" />
+                {bestRound ?? 0}
+              </div>
+              <div className="text-[var(--color-ivory)]/50 text-xs">Record</div>
+            </div>
+            {isNewRecord && (
+              <span className="text-xs font-bold text-[var(--color-brass)] bg-[var(--color-brass)]/15 border border-[var(--color-brass)]/40 px-2 py-1 rounded-full">
+                Nouveau record !
+              </span>
+            )}
+          </motion.div>
+        )}
+
+        {/* Regular stats bar — only for non-survival games */}
+        {!isSurvival && stats && (
           <motion.div
             className="flex items-center justify-center gap-4 mb-6 py-3 px-4 rounded-xl bg-[#180f0a] border border-[#3b2419]"
             initial={{ opacity: 0, y: 8 }}
@@ -146,13 +205,31 @@ export function GameOverlay({ winner, localPlayer, stats, onRestart, onHome }: G
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <button
-            onClick={onRestart}
-            className="w-full flex items-center justify-center gap-2 bg-[var(--color-brass)] text-[#180f0a] font-bold py-3 rounded-lg hover:bg-[#e2a868] transition-colors"
-          >
-            <RotateCcw className="w-5 h-5" />
-            Rejouer
-          </button>
+          {isSurvival && isWin ? (
+            <button
+              onClick={onContinueSurvival}
+              className="w-full flex items-center justify-center gap-2 bg-[var(--color-brass)] text-[#180f0a] font-bold py-3 rounded-lg hover:bg-[#e2a868] transition-colors"
+            >
+              Manche suivante
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          ) : isSurvival && !isWin ? (
+            <button
+              onClick={onRestartSurvival}
+              className="w-full flex items-center justify-center gap-2 bg-[var(--color-brass)] text-[#180f0a] font-bold py-3 rounded-lg hover:bg-[#e2a868] transition-colors"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Retenter la Survie
+            </button>
+          ) : (
+            <button
+              onClick={onRestart}
+              className="w-full flex items-center justify-center gap-2 bg-[var(--color-brass)] text-[#180f0a] font-bold py-3 rounded-lg hover:bg-[#e2a868] transition-colors"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Rejouer
+            </button>
+          )}
 
           <button
             onClick={onHome}

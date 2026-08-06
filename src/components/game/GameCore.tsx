@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Lightbulb } from 'lucide-react';
 import { type GameState, type Player } from '@/lib/gameLogic';
+import { getBestSurvivalRound, recordSurvivalRound } from '@/lib/survivalRecord';
 import { useGame } from '@/hooks/useGame';
 import { useAI } from '@/hooks/useAI';
 import { useSound } from '@/hooks/useSound';
@@ -17,6 +18,7 @@ import { GameOverlay } from '@/components/game/GameOverlay';
 import { RulesOverlay } from '@/components/game/RulesOverlay';
 import { ChatPanel } from '@/components/game/ChatPanel';
 import { HistoryPanel } from '@/components/game/HistoryPanel';
+import { PassDeviceOverlay } from '@/components/game/PassDeviceOverlay';
 
 interface GameCoreProps {
   initialState: GameState;
@@ -24,9 +26,11 @@ interface GameCoreProps {
   localPlayerId: Player;
   onHome: () => void;
   onSurvivalResult?: (won: boolean) => void;
+  survivalRound?: number;
+  onRestartSurvivalRun?: () => void;
 }
 
-export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult }: GameCoreProps) {
+export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult, survivalRound, onRestartSurvivalRun }: GameCoreProps) {
   const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId);
   const [mode, setMode] = useState<'move' | 'wallH' | 'wallV'>('move');
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -42,8 +46,19 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   // In local pass-and-play, whoever's turn it is controls the board on the shared device.
   const boardPlayer: Player = roomId ? localPlayerId : isLocalDuo ? gameState.turn : localPlayerId;
 
+  // Duo local: show a "pass the device" screen whenever the turn changes hands.
+  const prevTurnRef = useRef(gameState.turn);
+  const [passDevice, setPassDevice] = useState(false);
+  useEffect(() => {
+    if (isLocalDuo && !gameState.winner && gameState.turn !== prevTurnRef.current) {
+      setPassDevice(true);
+    }
+    prevTurnRef.current = gameState.turn;
+  }, [gameState.turn, gameState.winner, isLocalDuo]);
+
   // Prevent double-recording on re-renders
   const hasRecordedRef = useRef(false);
+  const [survivalOutcome, setSurvivalOutcome] = useState<{ roundsSurvived: number; best: number; isNewRecord: boolean } | null>(null);
   useEffect(() => {
     if (gameState.winner && !hasRecordedRef.current) {
       hasRecordedRef.current = true;
@@ -51,10 +66,19 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       if (won) recordWin();
       else recordLoss();
 
-      if (onSurvivalResult) onSurvivalResult(won);
+      if (gameState.mode === 'survival' && typeof survivalRound === 'number') {
+        const roundsSurvived = won ? survivalRound : survivalRound - 1;
+        const { best, isNewRecord } = recordSurvivalRound(Math.max(0, roundsSurvived));
+        setSurvivalOutcome({ roundsSurvived: Math.max(0, roundsSurvived), best, isNewRecord });
+        // Only end the run automatically on a loss — a win waits for the player to hit "Manche suivante".
+        if (!won && onSurvivalResult) onSurvivalResult(false);
+      } else if (onSurvivalResult) {
+        onSurvivalResult(won);
+      }
     }
     if (!gameState.winner) {
       hasRecordedRef.current = false;
+      setSurvivalOutcome(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState.winner]);
@@ -227,12 +251,31 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             stats={stats}
             onRestart={restartGame}
             onHome={onHome}
+            isSurvival={gameState.mode === 'survival'}
+            survivalRoundNumber={survivalRound}
+            roundsSurvived={survivalOutcome?.roundsSurvived}
+            bestRound={survivalOutcome?.best ?? getBestSurvivalRound()}
+            isNewRecord={survivalOutcome?.isNewRecord}
+            onContinueSurvival={() => onSurvivalResult?.(true)}
+            onRestartSurvival={onRestartSurvivalRun}
           />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {showRules && <RulesOverlay key="rules-overlay" onClose={() => setShowRules(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {passDevice && !gameState.winner && (
+          <PassDeviceOverlay
+            key="pass-device"
+            nextPlayer={gameState.turn}
+            nextPlayerLabel={gameState.turn === 'p1' ? 'J1' : 'J2'}
+            nextPlayerName={gameState.names[gameState.turn]}
+            onReady={() => setPassDevice(false)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

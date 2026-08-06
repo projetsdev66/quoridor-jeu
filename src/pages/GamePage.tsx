@@ -85,7 +85,7 @@ export function GamePage() {
   const handleSurvivalResult = (won: boolean) => {
     if (!survivalActive) return;
     if (!won) {
-      // Run over — back to menu on the next "Menu principal" click.
+      // Run over — GameCore already recorded the best-round locally for display.
       setSurvivalActive(false);
       return;
     }
@@ -144,6 +144,8 @@ export function GamePage() {
         localPlayerId={activeGame.localPlayer}
         onHome={goHome}
         onSurvivalResult={survivalActive ? handleSurvivalResult : undefined}
+        survivalRound={activeGame.survivalRound}
+        onRestartSurvivalRun={survivalActive ? () => handleStartSurvival(playerName) : undefined}
       />
     );
   }
