@@ -57,14 +57,14 @@ export function SettingsPanel({ open, settings, onClose, onToggle, onReset }: Se
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 p-3 sm:items-center sm:p-6"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3 sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
           <motion.div
-            className="w-full max-w-lg rounded-[28px] border border-[#5c3a24] bg-[var(--color-wood-dark)] p-5 shadow-2xl"
+            className="max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-[28px] border border-[#5c3a24] bg-[var(--color-wood-dark)] p-5 shadow-2xl"
             initial={{ opacity: 0, y: 32, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
