@@ -56,7 +56,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   const [showPath, setShowPath] = useState(() => settings.showPathByDefault);
 
   const { formatted: gameTime } = useTimer(!gameState.winner, gameState.roomId || 'local');
-  const { playMove, playWall, playVictory } = useSound(settings.soundEnabled);
+  const { playMove, playWall, playError, playVictory } = useSound(settings.soundEnabled);
   const { toast } = useToast();
 
   const { stats, recordWin, recordLoss } = useStats();
@@ -191,6 +191,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             reducedMotion={settings.reducedMotion}
             onMove={(pos) => dispatchMove(boardPlayer, pos)}
             onWall={(wall) => dispatchWall(boardPlayer, wall)}
+            onInvalidAction={playError}
           />
 
           {!gameState.winner && (

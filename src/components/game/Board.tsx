@@ -24,11 +24,18 @@ interface BoardProps {
   reducedMotion?: boolean;
   onMove: (pos: Position) => void;
   onWall: (wall: Wall) => void;
+  onInvalidAction?: () => void;
 }
 
-export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = true, reducedMotion = false, onMove, onWall }: BoardProps) {
+export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = true, reducedMotion = false, onMove, onWall, onInvalidAction }: BoardProps) {
   const [hoveredWall, setHoveredWall] = useState<Wall | null>(null);
   const [pendingWall, setPendingWall] = useState<Wall | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
+
+  const triggerInvalid = () => {
+    onInvalidAction?.();
+    if (!reducedMotion) setIsShaking(true);
+  };
 
   const isMyTurn = gameState.turn === localPlayer && !gameState.winner;
   const oppPos = gameState.pos[localPlayer === 'p1' ? 'p2' : 'p1'];
@@ -65,8 +72,11 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
   }, [gameState.lastAction]);
 
   const handleCellClick = (r: number, c: number) => {
-    if (mode === 'move' && isMyTurn && validMoves.some((m) => m.r === r && m.c === c)) {
+    if (mode !== 'move' || !isMyTurn) return;
+    if (validMoves.some((m) => m.r === r && m.c === c)) {
       onMove({ r, c });
+    } else {
+      triggerInvalid();
     }
   };
 
@@ -86,7 +96,10 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
 
   const handleWallClick = (wall: Wall) => {
     if (!mode.startsWith('wall') || !isMyTurn) return;
-    if (!canPlaceWall(wall, gameState)) return;
+    if (!canPlaceWall(wall, gameState)) {
+      triggerInvalid();
+      return;
+    }
 
     if (!confirmWalls) {
       placeWall(wall);
@@ -161,7 +174,10 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
   const previewWall = pendingWall ?? hoveredWall;
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[460px] overflow-visible rounded-[26px] bg-[var(--color-wood-dark)] p-[3%] shadow-[0_24px_70px_rgba(0,0,0,0.42)] lg:max-w-[520px]">
+    <div
+      className={`relative mx-auto aspect-square w-full max-w-[460px] overflow-visible rounded-[26px] bg-[var(--color-wood-dark)] p-[3%] shadow-[0_24px_70px_rgba(0,0,0,0.42)] lg:max-w-[520px] ${isShaking ? 'animate-board-shake' : ''}`}
+      onAnimationEnd={() => setIsShaking(false)}
+    >
       <div
         className={`pointer-events-none absolute inset-0 rounded-[26px] border-[6px] transition-colors duration-300 ${
           gameState.winner

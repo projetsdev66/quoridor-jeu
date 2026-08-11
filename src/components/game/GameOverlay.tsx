@@ -39,18 +39,31 @@ export function GameOverlay({
 
   const isWin = winner === localPlayer;
 
-  const particles = useMemo(
-    () =>
-      Array.from({ length: 24 }, (_, i) => ({
-        id: i,
-        angle: (i * 137.5) % 360,
-        distance: 60 + ((i * 23) % 80),
-        delay: (i % 6) * 0.07,
-        size: 4 + (i % 3) * 3,
-        color: ['#c99a52', '#e2a868', '#f0d090', '#fff8e0'][i % 4],
-      })),
-    [],
-  );
+  const particles = useMemo(() => {
+    // Three staggered bursts (center, then left, then right) instead of one flat burst — more "alive".
+    const waves: { originX: string; originY: string; baseDelay: number; count: number; spread: number }[] = [
+      { originX: '50%', originY: '45%', baseDelay: 0, count: 16, spread: 80 },
+      { originX: '15%', originY: '55%', baseDelay: 0.25, count: 10, spread: 60 },
+      { originX: '85%', originY: '55%', baseDelay: 0.42, count: 10, spread: 60 },
+    ];
+    const colors = ['#c99a52', '#e2a868', '#f0d090', '#fff8e0'];
+    let idCounter = 0;
+    return waves.flatMap((wave) =>
+      Array.from({ length: wave.count }, (_, i) => {
+        const id = idCounter++;
+        return {
+          id,
+          originX: wave.originX,
+          originY: wave.originY,
+          angle: (i * (360 / wave.count) + id * 11) % 360,
+          distance: wave.spread * 0.6 + ((id * 23) % wave.spread),
+          delay: wave.baseDelay + (i % 6) * 0.05,
+          size: 4 + (id % 3) * 3,
+          color: colors[id % colors.length],
+        };
+      }),
+    );
+  }, []);
 
   const title = isSurvival
     ? isWin
@@ -79,8 +92,8 @@ export function GameOverlay({
               width: p.size,
               height: p.size,
               background: p.color,
-              top: '45%',
-              left: '50%',
+              top: p.originY,
+              left: p.originX,
             }}
             initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
             animate={{
@@ -89,7 +102,7 @@ export function GameOverlay({
               y: Math.sin((p.angle * Math.PI) / 180) * p.distance - 40,
               scale: [0, 1, 1, 0],
             }}
-            transition={{ duration: 1.4, delay: p.delay, ease: 'easeOut' }}
+            transition={{ duration: 1.3, delay: p.delay, ease: 'easeOut' }}
           />
         ))}
 

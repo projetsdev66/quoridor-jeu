@@ -137,4 +137,13 @@
   .brass-ring-hover:active {
     transform: translateY(0px) scale(0.98);
   }
+
+  @keyframes board-shake {
+    0%, 100% { transform: translateX(0); }
+    15%, 45%, 75% { transform: translateX(-6px); }
+    30%, 60%, 90% { transform: translateX(6px); }
+  }
+  .animate-board-shake {
+    animation: board-shake 0.35s ease-in-out;
+  }
 }
