@@ -7,9 +7,10 @@ interface AIProps {
   dispatchMove: (player: 'p1' | 'p2', pos: Position) => void;
   dispatchWall: (player: 'p1' | 'p2', wall: Wall) => void;
   isAIActive: boolean;
+  searchBoost?: number;
 }
 
-export function useAI({ gameState, dispatchMove, dispatchWall, isAIActive }: AIProps) {
+export function useAI({ gameState, dispatchMove, dispatchWall, isAIActive, searchBoost = 0 }: AIProps) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function useAI({ gameState, dispatchMove, dispatchWall, isAIActive }: AIP
 
     const computeAndPlay = () => {
       const difficulty = gameState.aiDifficulty as Difficulty;
-      const action = chooseAIMove(gameState, 'p2', difficulty);
+      const action = chooseAIMove(gameState, 'p2', difficulty, searchBoost);
 
       if (action.type === 'wall') {
         dispatchWall('p2', action.wall);
@@ -32,5 +33,5 @@ export function useAI({ gameState, dispatchMove, dispatchWall, isAIActive }: AIP
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [gameState, dispatchMove, dispatchWall, isAIActive]);
+  }, [gameState, dispatchMove, dispatchWall, isAIActive, searchBoost]);
 }

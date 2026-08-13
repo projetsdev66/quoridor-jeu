@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, RotateCcw, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
 import { getFreshState, applyMove, applyWall, type GameState, type Position, type Wall } from '@/lib/gameLogic';
 import { PUZZLES, type Puzzle } from '@/lib/puzzles';
+import { recordPuzzleSolved } from '@/lib/puzzleProgress';
 import { Board } from '@/components/game/Board';
 
 interface PuzzleScreenProps {
   onHome: () => void;
+  startIndex?: number;
 }
 
 function stateFromPuzzle(puzzle: Puzzle): GameState {
@@ -19,8 +21,8 @@ function stateFromPuzzle(puzzle: Puzzle): GameState {
   return state;
 }
 
-export function PuzzleScreen({ onHome }: PuzzleScreenProps) {
-  const [index, setIndex] = useState(0);
+export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
+  const [index, setIndex] = useState(() => Math.min(Math.max(startIndex, 0), PUZZLES.length - 1));
   const puzzle = PUZZLES[index];
   const [state, setState] = useState<GameState>(() => stateFromPuzzle(puzzle));
   const [movesUsed, setMovesUsed] = useState(0);
@@ -29,6 +31,11 @@ export function PuzzleScreen({ onHome }: PuzzleScreenProps) {
 
   const solved = state.pos.p1.r === 8;
   const failed = !solved && movesUsed >= puzzle.maxMoves;
+
+  useEffect(() => {
+    if (solved) recordPuzzleSolved(index);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solved]);
 
   const reset = (p: Puzzle = puzzle) => {
     setState(stateFromPuzzle(p));

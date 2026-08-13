@@ -21,6 +21,7 @@ import { RulesOverlay } from '@/components/game/RulesOverlay';
 import { ChatPanel } from '@/components/game/ChatPanel';
 import { HistoryPanel } from '@/components/game/HistoryPanel';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
+import { WaitingOverlay } from '@/components/game/WaitingOverlay';
 
 interface GameCoreProps {
   initialState: GameState;
@@ -29,6 +30,7 @@ interface GameCoreProps {
   onHome: () => void;
   onSurvivalResult?: (won: boolean) => void;
   survivalRound?: number;
+  survivalSearchBoost?: number;
   onRestartSurvivalRun?: () => void;
 }
 
@@ -47,7 +49,7 @@ function getModeLabel(mode?: GameState['mode']) {
   }
 }
 
-export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult, survivalRound, onRestartSurvivalRun }: GameCoreProps) {
+export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult, survivalRound, survivalSearchBoost = 0, onRestartSurvivalRun }: GameCoreProps) {
   const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId);
   const [mode, setMode] = useState<'move' | 'wallH' | 'wallV'>('move');
   const [showRules, setShowRules] = useState(false);
@@ -106,6 +108,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
     dispatchMove,
     dispatchWall,
     isAIActive: !roomId && !!gameState.aiDifficulty,
+    searchBoost: survivalSearchBoost,
   });
 
   useEffect(() => {
@@ -168,6 +171,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             <PlayerCard
               player={displayOppId}
               name={gameState.names[displayOppId]}
+              color={gameState.colors?.[displayOppId] ?? '#3a6ea8'}
               wallsLeft={gameState.wallsLeft[displayOppId]}
               isActive={gameState.turn === displayOppId && !gameState.winner}
               isLocal={isLocalDuo}
@@ -247,6 +251,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
           <PlayerCard
             player={boardPlayer}
             name={gameState.names[boardPlayer]}
+            color={gameState.colors?.[boardPlayer] ?? '#c0392b'}
             wallsLeft={gameState.wallsLeft[boardPlayer]}
             isActive={isBoardTurn}
             isLocal={true}
@@ -333,6 +338,10 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
           setShowPath(false);
         }}
       />
+
+      {roomId && !gameState.players?.p2 && !gameState.winner && (
+        <WaitingOverlay roomId={roomId} onQuit={onHome} />
+      )}
     </div>
   );
 }

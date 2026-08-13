@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { type GameState, type Player, getFreshState } from '@/lib/gameLogic';
 import { type Difficulty } from '@/lib/aiEngine';
+import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from '@/lib/playerColors';
 import { MainMenu } from '@/components/menu/MainMenu';
 import { OnboardingScreen } from '@/components/menu/OnboardingScreen';
 import { GameCore } from '@/components/game/GameCore';
@@ -25,9 +26,14 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
 
 function survivalDifficultyForRound(round: number): Difficulty {
   if (round <= 2) return 'easy';
-  if (round <= 4) return 'medium';
-  if (round <= 6) return 'hard';
+  if (round <= 5) return 'medium';
+  if (round <= 8) return 'hard';
   return 'expert';
+}
+
+/** A little extra search depth/time for the AI as rounds climb, on top of the difficulty tier bump above. */
+function survivalSearchBoost(round: number): number {
+  return Math.min(3, Math.floor(round / 3));
 }
 
 export function GamePage() {
@@ -40,8 +46,17 @@ export function GamePage() {
   } | null>(null);
   const [playerName, setPlayerName] = useState('Vous');
   const [survivalActive, setSurvivalActive] = useState(false);
+  const [puzzleStartIndex, setPuzzleStartIndex] = useState(0);
 
-  const buildSoloState = (difficulty: Difficulty, name: string, mode: 'classic' | 'blitz' | 'survival', round?: number): GameState => {
+  const opponentColorFor = (myColor: string) => (myColor === DEFAULT_P1_COLOR ? DEFAULT_P2_COLOR : DEFAULT_P1_COLOR);
+
+  const buildSoloState = (
+    difficulty: Difficulty,
+    name: string,
+    mode: 'classic' | 'blitz' | 'survival',
+    myColor: string,
+    round?: number,
+  ): GameState => {
     const state = getFreshState();
     state.aiDifficulty = difficulty;
     state.mode = mode;
@@ -49,33 +64,36 @@ export function GamePage() {
     state.names.p2 = round
       ? `IA · Manche ${round} · ${DIFFICULTY_LABEL[difficulty]}`
       : `IA (${DIFFICULTY_LABEL[difficulty]})`;
+    state.colors = { p1: myColor, p2: opponentColorFor(myColor) };
     return state;
   };
 
-  const handleStartSolo = (difficulty: Difficulty, name: string, mode: 'classic' | 'blitz') => {
+  const handleStartSolo = (difficulty: Difficulty, name: string, mode: 'classic' | 'blitz', myColor: string) => {
     setPlayerName(name || 'Vous');
     setSurvivalActive(false);
-    setActiveGame({ state: buildSoloState(difficulty, name, mode), localPlayer: 'p1' });
+    setActiveGame({ state: buildSoloState(difficulty, name, mode, myColor), localPlayer: 'p1' });
     setView('game');
   };
 
-  const handleStartDuo = (name: string) => {
+  const handleStartDuo = (name: string, myColor: string) => {
     const state = getFreshState();
     state.mode = 'duo';
     state.names.p1 = name || 'Joueur 1';
     state.names.p2 = 'Joueur 2';
+    state.colors = { p1: myColor, p2: opponentColorFor(myColor) };
     setPlayerName(name || 'Joueur 1');
     setSurvivalActive(false);
     setActiveGame({ state, localPlayer: 'p1' });
     setView('game');
   };
 
-  const handleStartSurvival = (name: string) => {
+  const handleStartSurvival = (name: string, myColor: string, startRound?: number) => {
     setPlayerName(name || 'Vous');
     setSurvivalActive(true);
-    const round = 1;
+    const round = startRound && startRound > 0 ? startRound : 1;
+    const difficulty = survivalDifficultyForRound(round);
     setActiveGame({
-      state: buildSoloState('easy', name, 'survival', round),
+      state: buildSoloState(difficulty, name, 'survival', myColor, round),
       localPlayer: 'p1',
       survivalRound: round,
     });
@@ -92,8 +110,9 @@ export function GamePage() {
     setActiveGame((prev) => {
       const nextRound = (prev?.survivalRound ?? 1) + 1;
       const difficulty = survivalDifficultyForRound(nextRound);
+      const myColor = prev?.state.colors?.p1 ?? DEFAULT_P1_COLOR;
       return {
-        state: buildSoloState(difficulty, playerName, 'survival', nextRound),
+        state: buildSoloState(difficulty, playerName, 'survival', myColor, nextRound),
         localPlayer: 'p1',
         survivalRound: nextRound,
       };
@@ -145,13 +164,18 @@ export function GamePage() {
         onHome={goHome}
         onSurvivalResult={survivalActive ? handleSurvivalResult : undefined}
         survivalRound={activeGame.survivalRound}
-        onRestartSurvivalRun={survivalActive ? () => handleStartSurvival(playerName) : undefined}
+        survivalSearchBoost={activeGame.survivalRound ? survivalSearchBoost(activeGame.survivalRound) : 0}
+        onRestartSurvivalRun={
+          survivalActive
+            ? () => handleStartSurvival(playerName, activeGame.state.colors?.p1 ?? DEFAULT_P1_COLOR, 1)
+            : undefined
+        }
       />
     );
   }
 
   if (view === 'puzzles') {
-    return <PuzzleScreen onHome={goHome} />;
+    return <PuzzleScreen onHome={goHome} startIndex={puzzleStartIndex} />;
   }
 
   return (
@@ -169,7 +193,10 @@ export function GamePage() {
         onStartSolo={handleStartSolo}
         onStartDuo={handleStartDuo}
         onStartSurvival={handleStartSurvival}
-        onOpenPuzzles={() => setView('puzzles')}
+        onOpenPuzzles={(startIndex) => {
+          setPuzzleStartIndex(startIndex ?? 0);
+          setView('puzzles');
+        }}
         onRoomCreated={handleRoomCreated}
         onRoomJoined={handleRoomJoined}
       />

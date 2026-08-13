@@ -1,9 +1,11 @@
 export const SIZE = 9;
 export const START_WALLS = 10;
 
+import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from './playerColors';
+
 export type Player = 'p1' | 'p2';
 export type Position = { r: number; c: number };
-export type Wall = { row: number; col: number; orientation: 'H' | 'V' };
+export type Wall = { row: number; col: number; orientation: 'H' | 'V'; owner?: Player };
 export type MoveAction = 
   | { type: 'move'; pos: Position } 
   | { type: 'wall'; wall: Wall };
@@ -16,6 +18,7 @@ export interface GameState {
   winner: Player | null;
   players: { p1: boolean; p2: boolean };
   names: { p1: string; p2: string };
+  colors: { p1: string; p2: string };
   tokens: { p1: string | null; p2: string | null };
   history: { player: Player; action: MoveAction; time: number }[];
   chat: { sender: string; text: string; time: number }[];
@@ -35,6 +38,7 @@ export function getFreshState(): GameState {
     winner: null,
     players: { p1: true, p2: false },
     names: { p1: 'Joueur 1', p2: 'Joueur 2' },
+    colors: { p1: DEFAULT_P1_COLOR, p2: DEFAULT_P2_COLOR },
     tokens: { p1: null, p2: null },
     history: [],
     chat: [],
@@ -213,14 +217,15 @@ export function applyMove(state: GameState, player: Player, pos: Position): Game
 }
 
 export function applyWall(state: GameState, player: Player, wall: Wall): GameState {
+  const ownedWall: Wall = { ...wall, owner: player };
   const newState = { 
     ...state, 
-    walls: [...state.walls, wall],
+    walls: [...state.walls, ownedWall],
     wallsLeft: { ...state.wallsLeft, [player]: state.wallsLeft[player] - 1 },
     updatedAt: Date.now() 
   };
-  newState.history = [...state.history, { player, action: { type: 'wall', wall }, time: Date.now() }];
-  newState.lastAction = { type: 'wall', wall };
+  newState.history = [...state.history, { player, action: { type: 'wall', wall: ownedWall }, time: Date.now() }];
+  newState.lastAction = { type: 'wall', wall: ownedWall };
   newState.turn = player === 'p1' ? 'p2' : 'p1';
   return newState;
 }

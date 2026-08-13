@@ -238,8 +238,17 @@ function search(state: GameState, forPlayer: Player, cfg: DifficultyConfig): Eng
 }
 
 /** Picks the AI's move for the given difficulty. */
-export function chooseAIMove(state: GameState, aiPlayer: Player, difficulty: Difficulty): MoveAction {
-  const cfg = CONFIG[difficulty];
+export function chooseAIMove(state: GameState, aiPlayer: Player, difficulty: Difficulty, boost = 0): MoveAction {
+  const base = CONFIG[difficulty];
+  const cfg: DifficultyConfig = boost > 0
+    ? {
+        ...base,
+        maxDepth: base.maxDepth + boost,
+        timeBudgetMs: Math.round(base.timeBudgetMs * (1 + boost * 0.4)),
+        wallCandidates: Math.min(20, base.wallCandidates + boost * 2),
+        randomness: Math.max(0, base.randomness - boost * 0.1),
+      }
+    : base;
   const result = search(state, aiPlayer, cfg);
 
   if (cfg.randomness > 0 && Math.random() < cfg.randomness) {

@@ -1,18 +1,21 @@
 import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon, HelpCircle } from 'lucide-react';
+import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon, HelpCircle, Info } from 'lucide-react';
 import { type GameState, getFreshState } from '@/lib/gameLogic';
-import { generateUniqueRoomCode, createRoom, joinRoom } from '@/lib/firebase';
+import { generateUniqueRoomCode, createRoom, joinRoom, peekRoom } from '@/lib/firebase';
 import { useStats } from '@/hooks/useStats';
 import { getBestSurvivalRound } from '@/lib/survivalRecord';
+import { getPuzzleProgress } from '@/lib/puzzleProgress';
+import { PLAYER_COLORS, DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from '@/lib/playerColors';
 import type { Difficulty } from '@/lib/aiEngine';
 import { RulesOverlay } from '@/components/game/RulesOverlay';
+import { ColorPicker } from '@/components/menu/ColorPicker';
 
 interface MainMenuProps {
-  onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz') => void;
-  onStartDuo: (playerName: string) => void;
-  onStartSurvival: (playerName: string) => void;
-  onOpenPuzzles: () => void;
+  onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz', myColor: string) => void;
+  onStartDuo: (playerName: string, myColor: string) => void;
+  onStartSurvival: (playerName: string, myColor: string, startRound?: number) => void;
+  onOpenPuzzles: (startIndex?: number) => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
   onRoomJoined: (roomId: string, state: GameState) => void;
 }
@@ -58,6 +61,23 @@ function MenuButton({ icon, label, subtitle, onClick, accent }: MenuButtonProps)
   );
 }
 
+function GridButton({ icon, label, subtitle, onClick }: MenuButtonProps) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.97 }}
+      className="flex flex-col items-start gap-1.5 p-3 rounded-xl text-left bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] border border-transparent hover:border-[#5c3a24] transition-colors"
+    >
+      <div className="w-8 h-8 rounded-full bg-[var(--color-brass)]/15 border border-[var(--color-brass)]/30 flex items-center justify-center">
+        {icon}
+      </div>
+      <div className="font-bold text-sm text-[var(--color-ivory)] leading-tight">{label}</div>
+      {subtitle && <div className="text-[10px] text-[var(--color-ivory)]/45 leading-tight">{subtitle}</div>}
+    </motion.button>
+  );
+}
+
 export function MainMenu({
   onStartSolo,
   onStartDuo,
@@ -66,22 +86,33 @@ export function MainMenu({
   onRoomCreated,
   onRoomJoined,
 }: MainMenuProps) {
-  const [view, setView] = useState<'main' | 'solo' | 'multi'>('main');
+  const [view, setView] = useState<'main' | 'solo' | 'multi' | 'multi-join' | 'survival-start'>('main');
   const [showRules, setShowRules] = useState(false);
   const [pendingMode, setPendingMode] = useState<'classic' | 'blitz'>('classic');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hostColorSeen, setHostColorSeen] = useState<string | null>(null);
+  const [joinerColor, setJoinerColor] = useState(DEFAULT_P2_COLOR);
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('quoridor_name') ?? ''; } catch { return ''; }
+  });
+  const [myColor, setMyColor] = useState(() => {
+    try { return localStorage.getItem('quoridor_color') ?? DEFAULT_P1_COLOR; } catch { return DEFAULT_P1_COLOR; }
   });
 
   const { stats } = useStats();
   const bestRound = getBestSurvivalRound();
+  const puzzleProgress = getPuzzleProgress();
 
   const saveName = (name: string) => {
     setPlayerName(name);
     try { localStorage.setItem('quoridor_name', name); } catch { /* ignore */ }
+  };
+
+  const saveColor = (hex: string) => {
+    setMyColor(hex);
+    try { localStorage.setItem('quoridor_color', hex); } catch { /* ignore */ }
   };
 
   const openDifficulty = (mode: 'classic' | 'blitz') => {
@@ -96,25 +127,39 @@ export function MainMenu({
     state.roomId = code;
     state.names.p1 = playerName.trim() || 'Hôte';
     state.names.p2 = 'Adversaire';
+    state.colors = { p1: myColor, p2: myColor === PLAYER_COLORS[1].hex ? PLAYER_COLORS[2].hex : DEFAULT_P2_COLOR };
     await createRoom(state, code);
     setLoading(false);
     onRoomCreated(code, state);
   };
 
-  const handleJoinRoom = async () => {
+  const handleLookupRoom = async () => {
     if (!joinCode || joinCode.length !== 4) {
       setError('Le code doit contenir 4 caractères');
       return;
     }
     setLoading(true);
     setError('');
-    const state = await joinRoom(joinCode.toUpperCase());
+    const info = await peekRoom(joinCode.toUpperCase());
+    setLoading(false);
+    if (!info) {
+      setError('Salle introuvable');
+      return;
+    }
+    setHostColorSeen(info.hostColor);
+    setJoinerColor(info.hostColor === DEFAULT_P1_COLOR ? DEFAULT_P2_COLOR : DEFAULT_P1_COLOR);
+    setView('multi-join');
+  };
+
+  const handleConfirmJoin = async () => {
+    setLoading(true);
+    const state = await joinRoom(joinCode.toUpperCase(), joinerColor, playerName.trim());
     setLoading(false);
     if (state) {
-      if (playerName.trim()) state.names.p2 = playerName.trim();
       onRoomJoined(joinCode.toUpperCase(), state);
     } else {
       setError('Salle introuvable');
+      setView('multi');
     }
   };
 
@@ -127,11 +172,20 @@ export function MainMenu({
   const totalGames = stats.wins + stats.losses;
 
   return (
-    <div className="w-full max-w-md lg:max-w-lg mx-auto p-6">
-      <div className="text-center mb-8">
-        <h1 className="text-5xl font-serif font-bold text-[var(--color-brass)] tracking-widest mb-2 drop-shadow-[0_2px_12px_rgba(201,154,82,0.25)]">
+    <div className="relative w-full max-w-md lg:max-w-lg mx-auto p-6">
+      {/* Ambient glow — pure CSS, no image assets needed */}
+      <div className="pointer-events-none absolute -top-24 -left-16 w-64 h-64 rounded-full bg-[var(--color-brass)]/10 blur-3xl animate-menu-float" />
+      <div className="pointer-events-none absolute -bottom-16 -right-10 w-56 h-56 rounded-full bg-[var(--color-brass)]/[0.08] blur-3xl animate-menu-float-delayed" />
+
+      <div className="relative text-center mb-8">
+        <motion.h1
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-6xl sm:text-7xl font-serif font-bold tracking-widest mb-2 bg-gradient-to-b from-[#f0d090] via-[var(--color-brass)] to-[#a87c3d] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(201,154,82,0.35)]"
+        >
           QUORIDOR
-        </h1>
+        </motion.h1>
         <p className="text-[var(--color-ivory)]/70">L'art du labyrinthe</p>
 
         <button
@@ -167,7 +221,7 @@ export function MainMenu({
       <div className="relative bg-[var(--color-wood-dark)] rounded-2xl shadow-2xl p-6 border border-[#3b2419] min-h-[300px] overflow-hidden before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--color-brass)]/50 before:to-transparent">
         <AnimatePresence mode="wait">
           {view === 'main' && (
-            <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-3">
+            <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4">
               {/* Player name input */}
               <div>
                 <label className="block text-xs text-[var(--color-ivory)]/50 mb-1 font-bold tracking-wide uppercase">
@@ -183,38 +237,52 @@ export function MainMenu({
                 />
               </div>
 
-              <MenuButton
-                icon={<User className="text-[var(--color-brass)] w-4 h-4" />}
-                label="Classique — vs IA"
+              <ColorPicker value={myColor} onChange={saveColor} label="Votre couleur" />
+
+              {/* Primary CTA — the one action most players want first */}
+              <motion.button
                 onClick={() => openDifficulty('classic')}
-              />
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl text-left bg-gradient-to-br from-[var(--color-brass)] to-[#a8793a] text-[#180f0a] shadow-[0_10px_30px_-8px_rgba(201,154,82,0.55)]"
+              >
+                <div className="w-11 h-11 rounded-full bg-[#180f0a]/15 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-lg leading-tight">Jouer contre l'IA</div>
+                  <div className="text-xs text-[#180f0a]/70">Mode classique — choisissez la difficulté</div>
+                </div>
+                <ChevronRight className="w-5 h-5 ml-auto shrink-0" />
+              </motion.button>
 
-              <MenuButton
-                icon={<Zap className="text-[var(--color-brass)] w-4 h-4" />}
-                label="Blitz"
-                subtitle="20 secondes par coup"
-                onClick={() => openDifficulty('blitz')}
-              />
-
-              <MenuButton
-                icon={<Shield className="text-[var(--color-brass)] w-4 h-4" />}
-                label="Survie"
-                subtitle={bestRound ? `Record : manche ${bestRound}` : "L'IA monte en puissance"}
-                onClick={() => onStartSurvival(playerName.trim())}
-              />
-
-              <MenuButton
-                icon={<Users className="text-[var(--color-brass)] w-4 h-4" />}
-                label="Duo local"
-                subtitle="Même appareil, à tour de rôle"
-                onClick={() => onStartDuo(playerName.trim())}
-              />
-
-              <MenuButton
-                icon={<PuzzleIcon className="text-[var(--color-brass)] w-4 h-4" />}
-                label="Puzzles"
-                onClick={onOpenPuzzles}
-              />
+              {/* Secondary modes — a grid reads as distinctly different from a stacked list */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <GridButton
+                  icon={<Zap className="text-[var(--color-brass)] w-4 h-4" />}
+                  label="Blitz"
+                  subtitle="20s / coup"
+                  onClick={() => openDifficulty('blitz')}
+                />
+                <GridButton
+                  icon={<Shield className="text-[var(--color-brass)] w-4 h-4" />}
+                  label="Survie"
+                  subtitle={bestRound ? `Record : manche ${bestRound}` : "Sans limite"}
+                  onClick={() => (bestRound > 0 ? setView('survival-start') : onStartSurvival(playerName.trim(), myColor))}
+                />
+                <GridButton
+                  icon={<Users className="text-[var(--color-brass)] w-4 h-4" />}
+                  label="Duo local"
+                  subtitle="Même appareil"
+                  onClick={() => onStartDuo(playerName.trim(), myColor)}
+                />
+                <GridButton
+                  icon={<PuzzleIcon className="text-[var(--color-brass)] w-4 h-4" />}
+                  label="Puzzles"
+                  subtitle={puzzleProgress > 0 ? `Puzzle ${puzzleProgress + 1}` : "Défis"}
+                  onClick={() => onOpenPuzzles(puzzleProgress > 0 ? puzzleProgress : undefined)}
+                />
+              </div>
 
               <MenuButton
                 icon={<Users className="text-[var(--color-brass)] w-4 h-4" />}
@@ -241,7 +309,7 @@ export function MainMenu({
                   key={d.id}
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onStartSolo(d.id, playerName.trim(), pendingMode)}
+                  onClick={() => onStartSolo(d.id, playerName.trim(), pendingMode, myColor)}
                   className="p-3 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]"
                 >
                   <div className="font-bold text-[var(--color-ivory)]">{d.label}</div>
@@ -256,6 +324,13 @@ export function MainMenu({
               <button onClick={() => setView('main')} className="text-[var(--color-ivory)]/50 hover:text-[var(--color-ivory)] flex items-center gap-2 mb-2 w-fit">
                 <ArrowLeft className="w-4 h-4" /> Retour
               </button>
+
+              <div className="flex items-start gap-2 rounded-xl border border-[#3b2419] bg-[#180f0a] p-3 text-xs text-[var(--color-ivory)]/60">
+                <Info className="w-4 h-4 text-[var(--color-brass)] shrink-0 mt-0.5" />
+                <p>
+                  <strong className="text-[var(--color-ivory)]/80">Comment jouer en ligne :</strong> l'un de vous crée une salle et obtient un code à 4 caractères. L'autre entre ce code pour vous rejoindre — vous pouvez être n'importe où, il faut juste être connectés à Internet, pas au même Wi-Fi. La partie démarre dès que les deux joueurs sont présents.
+                </p>
+              </div>
 
               <motion.button
                 whileHover={{ y: -2 }}
@@ -289,13 +364,69 @@ export function MainMenu({
                 <motion.button
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleJoinRoom}
+                  onClick={handleLookupRoom}
                   disabled={loading || joinCode.length !== 4}
                   className="w-full py-3 bg-[var(--color-wood-medium)] text-[var(--color-ivory)] font-bold rounded-xl transition-colors hover:bg-[#4a2e1b] disabled:opacity-50 border border-[#5c3a24]"
                 >
-                  {loading ? 'Connexion...' : 'Rejoindre'}
+                  {loading ? 'Recherche...' : 'Rejoindre'}
                 </motion.button>
               </div>
+            </motion.div>
+          )}
+
+          {view === 'multi-join' && (
+            <motion.div key="multi-join" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4">
+              <button onClick={() => setView('multi')} className="text-[var(--color-ivory)]/50 hover:text-[var(--color-ivory)] flex items-center gap-2 mb-2 w-fit">
+                <ArrowLeft className="w-4 h-4" /> Retour
+              </button>
+
+              <p className="text-sm text-[var(--color-ivory)]/60">
+                Salle <span className="font-mono font-bold text-[var(--color-ivory)]">{joinCode}</span> trouvée. Choisissez votre couleur :
+              </p>
+
+              <ColorPicker value={joinerColor} onChange={setJoinerColor} excludeHex={hostColorSeen ?? undefined} />
+
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleConfirmJoin}
+                disabled={loading}
+                className="w-full py-3 bg-[var(--color-brass)] text-[#180f0a] font-bold rounded-xl transition-colors hover:bg-[#e2a868] disabled:opacity-50"
+              >
+                {loading ? 'Connexion...' : 'Rejoindre la partie'}
+              </motion.button>
+            </motion.div>
+          )}
+          {view === 'survival-start' && (
+            <motion.div key="survival-start" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-3">
+              <button onClick={() => setView('main')} className="text-[var(--color-ivory)]/50 hover:text-[var(--color-ivory)] flex items-center gap-2 mb-2 w-fit">
+                <ArrowLeft className="w-4 h-4" /> Retour
+              </button>
+
+              <h3 className="text-xl font-serif text-[var(--color-brass)] mb-1">Mode Survie</h3>
+              <p className="text-xs text-[var(--color-ivory)]/40 mb-1">
+                Votre record : manche {bestRound}
+              </p>
+
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onStartSurvival(playerName.trim(), myColor, bestRound)}
+                className="p-3.5 bg-gradient-to-br from-[var(--color-brass)] to-[#a8793a] text-[#180f0a] rounded-xl text-left"
+              >
+                <div className="font-bold">Reprendre à la manche {bestRound}</div>
+                <div className="text-xs text-[#180f0a]/70">Continuez avec la difficulté de votre record</div>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onStartSurvival(playerName.trim(), myColor, 1)}
+                className="p-3.5 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]"
+              >
+                <div className="font-bold text-[var(--color-ivory)]">Recommencer à la manche 1</div>
+                <div className="text-xs text-[var(--color-ivory)]/50">Repartez de zéro, difficulté facile</div>
+              </motion.button>
             </motion.div>
           )}
         </AnimatePresence>

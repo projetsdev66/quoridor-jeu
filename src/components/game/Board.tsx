@@ -179,13 +179,12 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
       onAnimationEnd={() => setIsShaking(false)}
     >
       <div
-        className={`pointer-events-none absolute inset-0 rounded-[26px] border-[6px] transition-colors duration-300 ${
-          gameState.winner
-            ? 'border-[var(--color-brass)]'
-            : gameState.turn === 'p1'
-              ? 'border-[var(--color-p1)]/60'
-              : 'border-[var(--color-p2)]/60'
-        }`}
+        className="pointer-events-none absolute inset-0 rounded-[26px] border-[6px] transition-colors duration-300"
+        style={{
+          borderColor: gameState.winner
+            ? 'var(--color-brass)'
+            : `${gameState.colors?.[gameState.turn] ?? 'var(--color-brass)'}99`,
+        }}
       />
 
       <div className="pointer-events-none absolute inset-3 rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%)]" />
@@ -201,6 +200,7 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
               c={w.col}
               orientation={w.orientation}
               reducedMotion={reducedMotion}
+              color={w.owner ? gameState.colors?.[w.owner] : undefined}
             />
           ))}
         </AnimatePresence>
@@ -218,8 +218,8 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
           )}
         </AnimatePresence>
 
-        <Pawn player="p1" r={gameState.pos.p1.r} c={gameState.pos.p1.c} isActive={gameState.turn === 'p1' && !gameState.winner} reducedMotion={reducedMotion} />
-        <Pawn player="p2" r={gameState.pos.p2.r} c={gameState.pos.p2.c} isActive={gameState.turn === 'p2' && !gameState.winner} reducedMotion={reducedMotion} />
+        <Pawn player="p1" color={gameState.colors?.p1 ?? '#c0392b'} r={gameState.pos.p1.r} c={gameState.pos.p1.c} isActive={gameState.turn === 'p1' && !gameState.winner} reducedMotion={reducedMotion} />
+        <Pawn player="p2" color={gameState.colors?.p2 ?? '#3a6ea8'} r={gameState.pos.p2.r} c={gameState.pos.p2.c} isActive={gameState.turn === 'p2' && !gameState.winner} reducedMotion={reducedMotion} />
 
         {wallSlots}
       </div>

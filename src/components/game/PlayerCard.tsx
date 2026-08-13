@@ -4,6 +4,7 @@ import { TURN_DURATION } from '@/hooks/useTurnTimer';
 interface PlayerCardProps {
   player: Player;
   name: string;
+  color: string;
   wallsLeft: number;
   isActive: boolean;
   isLocal: boolean;
@@ -13,7 +14,7 @@ interface PlayerCardProps {
   avatarLabel?: string;
 }
 
-export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel }: PlayerCardProps) {
+export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel }: PlayerCardProps) {
   const showTimer = isActive && isLocal && turnSecondsLeft !== undefined;
   const progress = turnSecondsLeft !== undefined ? Math.max(0, Math.min(1, turnSecondsLeft / turnDuration)) : 1;
 
@@ -29,9 +30,8 @@ export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSec
 
       <div className="relative flex items-center gap-3">
         <div
-          className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/10 font-bold text-white shadow-inner ${
-            player === 'p1' ? 'bg-[var(--color-p1)]' : 'bg-[var(--color-p2)]'
-          }`}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 font-bold text-white shadow-inner"
+          style={{ backgroundColor: color }}
         >
           {avatarLabel ?? (isLocal ? 'Moi' : 'IA')}
         </div>
@@ -64,9 +64,8 @@ export function PlayerCard({ player, name, wallsLeft, isActive, isLocal, turnSec
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className={`h-3 w-2 rounded-sm transition-all duration-300 ${
-                  i < wallsLeft ? 'bg-[#e2a868] shadow-sm' : 'bg-[#180f0a] opacity-30'
-                }`}
+                className="h-3 w-2 rounded-sm transition-all duration-300"
+                style={i < wallsLeft ? { backgroundColor: color, boxShadow: '0 1px 2px rgba(0,0,0,0.4)' } : { backgroundColor: '#180f0a', opacity: 0.3 }}
               />
             ))}
             <span className="ml-2 font-mono text-xs text-[var(--color-ivory)]/65">{wallsLeft} murs</span>
