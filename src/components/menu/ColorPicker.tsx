@@ -16,7 +16,7 @@ export function ColorPicker({ value, onChange, excludeHex, label }: ColorPickerP
           {label}
         </label>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {PLAYER_COLORS.map((c) => {
           const disabled = c.hex === excludeHex;
           const selected = c.hex === value;
@@ -27,12 +27,12 @@ export function ColorPicker({ value, onChange, excludeHex, label }: ColorPickerP
               disabled={disabled}
               onClick={() => onChange(c.hex)}
               title={disabled ? `${c.name} (déjà pris)` : c.name}
-              className={`relative w-9 h-9 rounded-full border-2 transition-transform ${
+              className={`relative w-7 h-7 rounded-full border-2 transition-transform ${
                 selected ? 'border-[var(--color-ivory)] scale-110' : 'border-transparent'
               } ${disabled ? 'opacity-25 cursor-not-allowed' : 'hover:scale-105'}`}
               style={{ backgroundColor: c.hex }}
             >
-              {selected && <Check className="w-4 h-4 text-white absolute inset-0 m-auto drop-shadow" />}
+              {selected && <Check className="w-3.5 h-3.5 text-white absolute inset-0 m-auto drop-shadow" />}
             </button>
           );
         })}

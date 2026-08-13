@@ -177,7 +177,7 @@ export function MainMenu({
       <div className="pointer-events-none absolute -top-24 -left-16 w-64 h-64 rounded-full bg-[var(--color-brass)]/10 blur-3xl animate-menu-float" />
       <div className="pointer-events-none absolute -bottom-16 -right-10 w-56 h-56 rounded-full bg-[var(--color-brass)]/[0.08] blur-3xl animate-menu-float-delayed" />
 
-      <div className="relative text-center mb-8">
+      <div className="relative text-center mb-5">
         <motion.h1
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -221,7 +221,7 @@ export function MainMenu({
       <div className="relative bg-[var(--color-wood-dark)] rounded-2xl shadow-2xl p-6 border border-[#3b2419] min-h-[300px] overflow-hidden before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--color-brass)]/50 before:to-transparent">
         <AnimatePresence mode="wait">
           {view === 'main' && (
-            <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4">
+            <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-3">
               {/* Player name input */}
               <div>
                 <label className="block text-xs text-[var(--color-ivory)]/50 mb-1 font-bold tracking-wide uppercase">
@@ -233,7 +233,7 @@ export function MainMenu({
                   value={playerName}
                   onChange={e => saveName(e.target.value)}
                   maxLength={20}
-                  className="w-full bg-[#180f0a] border border-[#3b2419] rounded-xl px-4 py-2.5 text-[var(--color-ivory)] focus:outline-none focus:border-[var(--color-brass)] placeholder:text-[var(--color-ivory)]/25 text-sm transition-colors"
+                  className="w-full bg-[#180f0a] border border-[#3b2419] rounded-xl px-4 py-2 text-[var(--color-ivory)] focus:outline-none focus:border-[var(--color-brass)] placeholder:text-[var(--color-ivory)]/25 text-sm transition-colors"
                 />
               </div>
 

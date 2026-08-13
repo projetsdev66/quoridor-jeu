@@ -10,7 +10,20 @@ export function useSound(enabled: boolean = true) {
         audioCtxRef.current = new AudioContext();
       }
     }
+
+    // Mobile browsers keep the AudioContext suspended until a real user gesture unlocks it.
+    // Resolve that as early as possible instead of racing it against every individual sound call.
+    const unlock = () => {
+      audioCtxRef.current?.resume().catch(() => {});
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true, passive: true });
+    window.addEventListener('keydown', unlock, { once: true });
+
     return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('keydown', unlock);
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
         audioCtxRef.current.close().catch(console.error);
       }

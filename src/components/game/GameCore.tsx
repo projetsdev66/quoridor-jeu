@@ -165,7 +165,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         gameTime={gameTime}
       />
 
-      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 lg:p-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
+      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
         <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
           <div className="w-full max-w-[460px]">
             <PlayerCard
@@ -197,6 +197,20 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             onWall={(wall) => dispatchWall(boardPlayer, wall)}
             onInvalidAction={playError}
           />
+
+          {/* Mobile: commands pinned to the bottom of the screen — no scrolling needed to reach them. */}
+          {!gameState.winner && (
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#3b2419] bg-[var(--color-wood-dark)]/95 p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+              <div className="mx-auto max-w-[460px]">
+                <ModeControls
+                  mode={mode}
+                  setMode={setMode}
+                  wallsLeft={gameState.wallsLeft[boardPlayer]}
+                  isMyTurn={isBoardTurn}
+                />
+              </div>
+            </div>
+          )}
 
           {!gameState.winner && (
             <div className="flex w-full max-w-[460px] flex-col gap-2">
@@ -261,13 +275,16 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             avatarLabel={isLocalDuo ? (boardPlayer === 'p1' ? 'J1' : 'J2') : undefined}
           />
 
+          {/* Desktop: controls live in the sidebar. Mobile: they're pinned to the bottom bar below instead. */}
           {!gameState.winner && (
-            <ModeControls
-              mode={mode}
-              setMode={setMode}
-              wallsLeft={gameState.wallsLeft[boardPlayer]}
-              isMyTurn={isBoardTurn}
-            />
+            <div className="hidden lg:block">
+              <ModeControls
+                mode={mode}
+                setMode={setMode}
+                wallsLeft={gameState.wallsLeft[boardPlayer]}
+                isMyTurn={isBoardTurn}
+              />
+            </div>
           )}
 
           <div className="w-full flex flex-col">
