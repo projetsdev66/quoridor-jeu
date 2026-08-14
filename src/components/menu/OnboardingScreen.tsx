@@ -10,17 +10,17 @@ const STEPS = [
   {
     icon: MousePointer2,
     title: 'Déplacez ou bloquez',
-    text: "À votre tour, avancez votre pion d'une case, ou posez un mur pour ralentir votre adversaire.",
+    text: "À votre tour, avancez votre pion d'une case ou posez un mur pour ralentir les autres joueurs.",
   },
   {
     icon: Grid3x3,
     title: 'Traversez le plateau',
-    text: 'Le premier à atteindre la ligne opposée à son point de départ gagne — impossible de totalement enfermer un adversaire.',
+    text: "Le premier à atteindre sa ligne d'arrivée gagne. Chaque joueur doit toujours conserver un chemin possible vers son objectif.",
   },
   {
     icon: Users,
     title: 'Seul ou à plusieurs',
-    text: "Affrontez l'IA, jouez en Duo sur le même appareil, ou créez une salle pour jouer en ligne avec un ami.",
+    text: "Affrontez l'IA, jouez en local à 2, 3 ou 4 sur le même appareil, ou créez une salle en ligne jusqu'à 4 joueurs.",
   },
 ];
 

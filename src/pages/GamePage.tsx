@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { type GameState, type Player, getFreshState } from '@/lib/gameLogic';
+import { type GameState, type Player, type PlayerCount, PLAYER_IDS, getFreshState, wallsForPlayerCount } from '@/lib/gameLogic';
 import { type Difficulty } from '@/lib/aiEngine';
-import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from '@/lib/playerColors';
+import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR, PLAYER_COLORS } from '@/lib/playerColors';
 import { MainMenu } from '@/components/menu/MainMenu';
 import { OnboardingScreen } from '@/components/menu/OnboardingScreen';
 import { GameCore } from '@/components/game/GameCore';
@@ -75,12 +75,26 @@ export function GamePage() {
     setView('game');
   };
 
-  const handleStartDuo = (name: string, myColor: string) => {
-    const state = getFreshState();
+  const handleStartDuo = (name: string, myColor: string, playerCount: PlayerCount) => {
+    const state = getFreshState(playerCount);
+    const wallCapacity = wallsForPlayerCount(playerCount);
+    const usedColors = new Set<string>();
+
+    PLAYER_IDS.forEach((player, index) => {
+      const active = index < playerCount;
+      state.players[player] = active;
+      state.wallsLeft[player] = active ? wallCapacity : 0;
+      state.names[player] = index === 0 ? (name || 'Joueur 1') : `Joueur ${index + 1}`;
+
+      const preferred = index === 0 ? myColor : undefined;
+      const nextColor = preferred && !usedColors.has(preferred)
+        ? preferred
+        : PLAYER_COLORS.find((color) => !usedColors.has(color.hex))?.hex ?? state.colors[player];
+      state.colors[player] = nextColor;
+      usedColors.add(nextColor);
+    });
+
     state.mode = 'duo';
-    state.names.p1 = name || 'Joueur 1';
-    state.names.p2 = 'Joueur 2';
-    state.colors = { ...state.colors, p1: myColor, p2: opponentColorFor(myColor) };
     setPlayerName(name || 'Joueur 1');
     setSurvivalActive(false);
     setActiveGame({ state, localPlayer: 'p1' });

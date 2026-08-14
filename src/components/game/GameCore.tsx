@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Copy, Lightbulb, Sparkles } from 'lucide-react';
 import { activePlayers, type GameState, type Player } from '@/lib/gameLogic';
@@ -41,7 +41,7 @@ function getModeLabel(mode?: GameState['mode']) {
     case 'survival':
       return 'Survie';
     case 'duo':
-      return 'Duo local';
+      return 'Partie locale';
     case 'puzzle':
       return 'Puzzle';
     default:
@@ -51,12 +51,12 @@ function getModeLabel(mode?: GameState['mode']) {
 
 export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult, survivalRound, survivalSearchBoost = 0, onRestartSurvivalRun }: GameCoreProps) {
   const { toast } = useToast();
-  const handleSyncError = () => {
+  const handleSyncError = useCallback(() => {
     toast({
       title: 'Connexion perdue',
       description: "Impossible de synchroniser la partie. Vérifiez votre connexion Internet.",
     });
-  };
+  }, [toast]);
   const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId, roomId ? handleSyncError : undefined);
   const [mode, setMode] = useState<'move' | 'wallH' | 'wallV'>('move');
   const [showRules, setShowRules] = useState(false);
@@ -189,7 +189,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
                 wallCapacity={gameState.maxPlayers === 2 ? 10 : 5}
                 isActive={gameState.turn === player && !gameState.winner}
                 isLocal={false}
-                avatarLabel={isLocalDuo ? (player === 'p1' ? 'J1' : 'J2') : player.slice(1)}
+                avatarLabel={isLocalDuo ? `J${player.slice(1)}` : player.slice(1)}
               />
             ))}
           </div>
@@ -198,6 +198,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             isMyTurn={isLocalDuo ? true : isMyTurn}
             winner={gameState.winner}
             opponentName={gameState.names[gameState.turn] ?? gameState.names[displayOppId]}
+            passAndPlay={isLocalDuo}
             reducedMotion={settings.reducedMotion}
           />
 
@@ -288,7 +289,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             turnSecondsLeft={isBoardTurn ? turnSecondsLeft : undefined}
             turnIsUrgent={turnIsUrgent}
             turnDuration={turnDuration}
-            avatarLabel={isLocalDuo ? (boardPlayer === 'p1' ? 'J1' : 'J2') : undefined}
+            avatarLabel={isLocalDuo ? `J${boardPlayer.slice(1)}` : undefined}
           />
 
           {/* Desktop: controls live in the sidebar. Mobile: they're pinned to the bottom bar below instead. */}
@@ -343,6 +344,8 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             key="game-overlay"
             winner={gameState.winner}
             localPlayer={localPlayerId}
+            winnerName={gameState.names[gameState.winner] ?? gameState.winner}
+            passAndPlay={isLocalDuo}
             stats={stats}
             onRestart={restartGame}
             onHome={onHome}

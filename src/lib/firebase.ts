@@ -40,6 +40,19 @@ export async function updateGameState(roomId: string, updates: Partial<GameState
   await update(getRoomRef(roomId), updates);
 }
 
+export async function transactGameState(
+  roomId: string,
+  updater: (state: GameState) => GameState | null,
+): Promise<boolean> {
+  const result = await runTransaction(getRoomRef(roomId), (currentData) => {
+    if (!currentData) return;
+    const current = normalizeGameState(currentData as Partial<GameState>);
+    const next = updater(current);
+    return next ? normalizeGameState(next) : undefined;
+  });
+  return result.committed;
+}
+
 export interface RoomInfo {
   hostColor: string;
   hostName: string;

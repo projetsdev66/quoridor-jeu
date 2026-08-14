@@ -13,7 +13,7 @@ import { ColorPicker } from '@/components/menu/ColorPicker';
 
 interface MainMenuProps {
   onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz', myColor: string) => void;
-  onStartDuo: (playerName: string, myColor: string) => void;
+  onStartDuo: (playerName: string, myColor: string, playerCount: PlayerCount) => void;
   onStartSurvival: (playerName: string, myColor: string, startRound?: number) => void;
   onOpenPuzzles: (startIndex?: number) => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
@@ -86,7 +86,7 @@ export function MainMenu({
   onRoomCreated,
   onRoomJoined,
 }: MainMenuProps) {
-  const [view, setView] = useState<'main' | 'solo' | 'multi' | 'multi-join' | 'survival-start'>('main');
+  const [view, setView] = useState<'main' | 'solo' | 'local' | 'multi' | 'multi-join' | 'survival-start'>('main');
   const [showRules, setShowRules] = useState(false);
   const [pendingMode, setPendingMode] = useState<'classic' | 'blitz'>('classic');
   const [joinCode, setJoinCode] = useState('');
@@ -95,6 +95,7 @@ export function MainMenu({
   const [hostColorSeen, setHostColorSeen] = useState<string | null>(null);
   const [joinerColor, setJoinerColor] = useState(DEFAULT_P2_COLOR);
   const [roomSize, setRoomSize] = useState<PlayerCount>(2);
+  const [localPlayerCount, setLocalPlayerCount] = useState<PlayerCount>(2);
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('quoridor_name') ?? ''; } catch { return ''; }
@@ -299,9 +300,9 @@ export function MainMenu({
                 />
                 <GridButton
                   icon={<Users className="text-[var(--color-brass)] w-4 h-4" />}
-                  label="Duo local"
-                  subtitle="Même appareil"
-                  onClick={() => onStartDuo(playerName.trim(), myColor)}
+                  label="Partie locale"
+                  subtitle="2 à 4 joueurs · même appareil"
+                  onClick={() => setView('local')}
                 />
                 <GridButton
                   icon={<PuzzleIcon className="text-[var(--color-brass)] w-4 h-4" />}
@@ -343,6 +344,45 @@ export function MainMenu({
                   <div className="text-sm text-[var(--color-ivory)]/50">{d.desc}</div>
                 </motion.button>
               ))}
+            </motion.div>
+          )}
+
+          {view === 'local' && (
+            <motion.div key="local" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-4">
+              <button onClick={() => setView('main')} className="text-[var(--color-ivory)]/50 hover:text-[var(--color-ivory)] flex items-center gap-2 mb-2 w-fit">
+                <ArrowLeft className="w-4 h-4" /> Retour
+              </button>
+
+              <div>
+                <h3 className="text-xl font-serif text-[var(--color-brass)]">Partie locale</h3>
+                <p className="mt-1 text-xs text-[var(--color-ivory)]/50">Passez l’appareil au joueur suivant. Tous les pions jouent sur le même plateau.</p>
+              </div>
+
+              <div className="rounded-xl border border-[#3b2419] bg-[#180f0a] p-3">
+                <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ivory)]/55">Nombre de joueurs</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([2, 3, 4] as PlayerCount[]).map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setLocalPlayerCount(count)}
+                      className={`rounded-lg border px-2 py-2 text-sm font-bold transition-colors ${localPlayerCount === count ? 'border-[var(--color-brass)] bg-[var(--color-brass)]/20 text-[var(--color-brass)]' : 'border-[#5c3a24] text-[var(--color-ivory)]/60 hover:border-[var(--color-brass)]/60'}`}
+                    >
+                      {count} joueurs
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-[var(--color-ivory)]/40">Chaque joueur dispose de {localPlayerCount === 2 ? 10 : 5} murs et d’un objectif différent sur le plateau.</p>
+              </div>
+
+              <motion.button
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onStartDuo(playerName.trim(), myColor, localPlayerCount)}
+                className="w-full py-4 bg-[var(--color-brass)] text-[#180f0a] font-bold rounded-xl transition-colors hover:bg-[#e2a868]"
+              >
+                Lancer la partie locale
+              </motion.button>
             </motion.div>
           )}
 

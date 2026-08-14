@@ -7,6 +7,8 @@ import { type Stats } from '@/hooks/useStats';
 interface GameOverlayProps {
   winner: Player | null;
   localPlayer: Player;
+  winnerName?: string;
+  passAndPlay?: boolean;
   stats?: Stats;
   onRestart: () => void;
   onHome: () => void;
@@ -23,6 +25,8 @@ interface GameOverlayProps {
 export function GameOverlay({
   winner,
   localPlayer,
+  winnerName,
+  passAndPlay = false,
   stats,
   onRestart,
   onHome,
@@ -37,7 +41,8 @@ export function GameOverlay({
 }: GameOverlayProps) {
   if (!winner) return null;
 
-  const isWin = winner === localPlayer;
+  const isWin = !passAndPlay && winner === localPlayer;
+  const resolvedWinnerName = winnerName || winner || 'Le gagnant';
 
   const particles = useMemo(() => {
     // Three staggered bursts (center, then left, then right) instead of one flat burst — more "alive".
@@ -69,17 +74,21 @@ export function GameOverlay({
     ? isWin
       ? `Manche ${survivalRoundNumber ?? ''} remportée !`
       : 'Série terminée'
-    : isWin
-      ? 'Victoire !'
-      : 'Défaite';
+    : passAndPlay
+      ? `${resolvedWinnerName} gagne !`
+      : isWin
+        ? 'Victoire !'
+        : 'Défaite';
 
   const subtitle = isSurvival
     ? isWin
       ? "Préparez-vous, l'IA devient plus forte."
       : `Vous avez survécu à ${roundsSurvived ?? 0} manche${(roundsSurvived ?? 0) > 1 ? 's' : ''}.`
-    : isWin
-      ? 'Vous avez brillamment atteint le côté opposé.'
-      : 'Votre adversaire a été plus rusé cette fois-ci.';
+    : passAndPlay
+      ? `${resolvedWinnerName} a atteint son objectif.`
+      : isWin
+        ? 'Vous avez brillamment atteint le côté opposé.'
+        : 'Les autres joueurs ont été plus rusés cette fois-ci.';
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -120,7 +129,7 @@ export function GameOverlay({
         >
           {isSurvival ? (
             <Shield className={`h-20 w-20 ${isWin ? 'text-[var(--color-brass)]' : 'text-[var(--color-ivory)]/40'}`} />
-          ) : isWin ? (
+          ) : passAndPlay || isWin ? (
             <Trophy className="h-20 w-20 text-[var(--color-brass)]" />
           ) : (
             <Frown className="h-20 w-20 text-[var(--color-ivory)]/40" />
@@ -166,7 +175,7 @@ export function GameOverlay({
           </motion.div>
         )}
 
-        {!isSurvival && stats && (
+        {!isSurvival && !passAndPlay && stats && (
           <motion.div
             className="mb-6 flex items-center justify-center gap-4 rounded-xl border border-[#3b2419] bg-[#180f0a] px-4 py-3"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}

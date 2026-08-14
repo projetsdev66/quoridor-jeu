@@ -9,7 +9,6 @@ import {
   SIZE,
   getValidMoves,
   canPlaceWall,
-  getShortestPath,
   getShortestPathForPlayer,
 } from '@/lib/gameLogic';
 import { Cell } from './Cell';
@@ -63,9 +62,7 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
 
   const pathHintSet = useMemo(() => {
     if (!showPath) return new Set<string>();
-    const path = localPlayer === 'p1' || localPlayer === 'p2'
-      ? getShortestPath(myPos, localPlayer === 'p1' ? SIZE - 1 : 0, gameState.walls)
-      : getShortestPathForPlayer(myPos, localPlayer, gameState.walls);
+    const path = getShortestPathForPlayer(myPos, localPlayer, gameState.walls);
     return new Set(path.slice(1).map((p) => `${p.r},${p.c}`));
   }, [showPath, myPos, localPlayer, gameState.walls]);
 

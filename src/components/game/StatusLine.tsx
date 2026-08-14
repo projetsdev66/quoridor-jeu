@@ -4,11 +4,15 @@ interface StatusLineProps {
   isMyTurn: boolean;
   winner: string | null;
   opponentName: string;
+  passAndPlay?: boolean;
   reducedMotion?: boolean;
 }
 
-export function StatusLine({ isMyTurn, winner, opponentName, reducedMotion = false }: StatusLineProps) {
+export function StatusLine({ isMyTurn, winner, opponentName, passAndPlay = false, reducedMotion = false }: StatusLineProps) {
   const transition = reducedMotion ? { duration: 0.1 } : { duration: 0.2 };
+  const animationProps = reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 };
+  const initialProps = reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 };
+  const exitProps = reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 };
 
   return (
     <div className="flex h-10 items-center justify-center gap-2 overflow-hidden py-2 text-center font-serif text-lg">
@@ -16,20 +20,31 @@ export function StatusLine({ isMyTurn, winner, opponentName, reducedMotion = fal
         {winner ? (
           <motion.span
             key="done"
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            initial={initialProps}
+            animate={animationProps}
+            exit={exitProps}
             transition={transition}
             className="text-[var(--color-brass)]"
           >
             Partie terminée
           </motion.span>
+        ) : passAndPlay ? (
+          <motion.span
+            key="pass-and-play"
+            initial={initialProps}
+            animate={animationProps}
+            exit={exitProps}
+            transition={transition}
+            className="text-[var(--color-ivory)]"
+          >
+            Au tour de {opponentName}
+          </motion.span>
         ) : isMyTurn ? (
           <motion.span
             key="myturn"
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            initial={initialProps}
+            animate={animationProps}
+            exit={exitProps}
             transition={transition}
             className="text-[var(--color-ivory)]"
           >
@@ -38,9 +53,9 @@ export function StatusLine({ isMyTurn, winner, opponentName, reducedMotion = fal
         ) : (
           <motion.span
             key="waiting"
-            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            initial={initialProps}
+            animate={animationProps}
+            exit={exitProps}
             transition={transition}
             className="flex items-center gap-2 text-[var(--color-ivory)]/60"
           >

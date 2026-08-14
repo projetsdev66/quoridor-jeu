@@ -27,7 +27,7 @@ export function RulesOverlay({ onClose }: RulesOverlayProps) {
         
         <div className="space-y-4 text-[var(--color-ivory)]/80 text-sm md:text-base leading-relaxed">
           <p>
-            <strong>But du jeu :</strong> Être le premier à atteindre n'importe quelle case de la ligne opposée à sa ligne de départ.
+            <strong>But du jeu :</strong> Être le premier à atteindre sa ligne d’arrivée. Les joueurs 1 et 2 traversent le plateau du nord vers le sud ou du sud vers le nord ; les joueurs 3 et 4 visent respectivement le bord est ou le bord ouest.
           </p>
           
           <h3 className="text-xl font-serif text-[var(--color-brass)] mt-4 mb-2">Déroulement</h3>
@@ -36,7 +36,7 @@ export function RulesOverlay({ onClose }: RulesOverlayProps) {
           </p>
           <ul className="list-disc pl-5 space-y-2">
             <li><strong>Déplacer son pion :</strong> D'une case orthogonalement (haut, bas, gauche, droite).</li>
-            <li><strong>Poser un mur :</strong> Pour ralentir l'adversaire. Chaque joueur dispose de 10 murs.</li>
+            <li><strong>Poser un mur :</strong> Pour ralentir les autres joueurs. Chaque joueur dispose de 10 murs en duel et de 5 murs dans une partie à 3 ou 4 joueurs.</li>
           </ul>
 
           <h3 className="text-xl font-serif text-[var(--color-brass)] mt-4 mb-2">Règles des murs</h3>
@@ -47,7 +47,7 @@ export function RulesOverlay({ onClose }: RulesOverlayProps) {
 
           <h3 className="text-xl font-serif text-[var(--color-brass)] mt-4 mb-2">Face à face</h3>
           <p>
-            Si deux pions se retrouvent face à face sans mur entre eux, le joueur dont c'est le tour peut sauter par-dessus l'adversaire. Si un mur se trouve derrière l'adversaire, le joueur peut sauter en diagonale.
+            Si un pion se trouve juste devant le joueur actif sans mur entre eux, le joueur peut sauter par-dessus. Si un mur ou un autre pion se trouve derrière, il peut se déplacer en diagonale autour du pion adjacent.
           </p>
         </div>
       </motion.div>
