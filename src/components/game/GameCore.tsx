@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Copy, Lightbulb, Sparkles } from 'lucide-react';
-import { type GameState, type Player } from '@/lib/gameLogic';
+import { activePlayers, type GameState, type Player } from '@/lib/gameLogic';
 import { getBestSurvivalRound, recordSurvivalRound } from '@/lib/survivalRecord';
 import { useGame } from '@/hooks/useGame';
 import { useAI } from '@/hooks/useAI';
@@ -140,8 +140,9 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
     }
   }, [gameState.winner, playVictory]);
 
-  const oppPlayerId = localPlayerId === 'p1' ? 'p2' : 'p1';
-  const displayOppId = isLocalDuo ? (boardPlayer === 'p1' ? 'p2' : 'p1') : oppPlayerId;
+  const participants = activePlayers(gameState);
+  const opponentPlayers = participants.filter((player) => player !== boardPlayer);
+  const displayOppId = opponentPlayers[0] ?? boardPlayer;
   const [activeTab, setActiveTab] = useState<'chat' | 'history'>(roomId ? 'chat' : 'history');
 
   const modeLabel = getModeLabel(gameState.mode);
@@ -176,23 +177,27 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       />
 
       <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
-        <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
-          <div className="w-full max-w-[460px]">
-            <PlayerCard
-              player={displayOppId}
-              name={gameState.names[displayOppId]}
-              color={gameState.colors?.[displayOppId] ?? '#3a6ea8'}
-              wallsLeft={gameState.wallsLeft[displayOppId]}
-              isActive={gameState.turn === displayOppId && !gameState.winner}
-              isLocal={isLocalDuo}
-              avatarLabel={isLocalDuo ? (displayOppId === 'p1' ? 'J1' : 'J2') : undefined}
-            />
+          <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
+          <div className={`grid w-full max-w-[460px] gap-3 ${opponentPlayers.length > 2 ? 'sm:grid-cols-2' : ''}`}>
+            {opponentPlayers.map((player) => (
+              <PlayerCard
+                key={player}
+                player={player}
+                name={gameState.names[player]}
+                color={gameState.colors?.[player] ?? '#3a6ea8'}
+                wallsLeft={gameState.wallsLeft[player]}
+                wallCapacity={gameState.maxPlayers === 2 ? 10 : 5}
+                isActive={gameState.turn === player && !gameState.winner}
+                isLocal={false}
+                avatarLabel={isLocalDuo ? (player === 'p1' ? 'J1' : 'J2') : player.slice(1)}
+              />
+            ))}
           </div>
 
           <StatusLine
             isMyTurn={isLocalDuo ? true : isMyTurn}
             winner={gameState.winner}
-            opponentName={gameState.names[displayOppId]}
+            opponentName={gameState.names[gameState.turn] ?? gameState.names[displayOppId]}
             reducedMotion={settings.reducedMotion}
           />
 
@@ -277,6 +282,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             name={gameState.names[boardPlayer]}
             color={gameState.colors?.[boardPlayer] ?? '#c0392b'}
             wallsLeft={gameState.wallsLeft[boardPlayer]}
+            wallCapacity={gameState.maxPlayers === 2 ? 10 : 5}
             isActive={isBoardTurn}
             isLocal={true}
             turnSecondsLeft={isBoardTurn ? turnSecondsLeft : undefined}
@@ -324,6 +330,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
               <HistoryPanel
                 history={gameState.history}
                 names={gameState.names}
+                colors={gameState.colors}
               />
             )}
           </div>
@@ -366,8 +373,8 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         }}
       />
 
-      {roomId && !gameState.players?.p2 && !gameState.winner && (
-        <WaitingOverlay roomId={roomId} onQuit={onHome} />
+      {roomId && participants.length < gameState.maxPlayers && !gameState.winner && (
+        <WaitingOverlay roomId={roomId} maxPlayers={gameState.maxPlayers} joinedPlayers={participants.length} onQuit={onHome} />
       )}
     </div>
   );

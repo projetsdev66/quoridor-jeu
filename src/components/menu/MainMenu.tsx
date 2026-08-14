@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon, HelpCircle, Info } from 'lucide-react';
-import { type GameState, getFreshState } from '@/lib/gameLogic';
-import { generateUniqueRoomCode, createRoom, joinRoom, peekRoom } from '@/lib/firebase';
+import { type GameState, type Player, type PlayerCount, PLAYER_IDS, getFreshState } from '@/lib/gameLogic';
+import { generateUniqueRoomCode, createRoom, joinRoom, peekRoom, type RoomInfo } from '@/lib/firebase';
 import { useStats } from '@/hooks/useStats';
 import { getBestSurvivalRound } from '@/lib/survivalRecord';
 import { getPuzzleProgress } from '@/lib/puzzleProgress';
@@ -17,7 +17,7 @@ interface MainMenuProps {
   onStartSurvival: (playerName: string, myColor: string, startRound?: number) => void;
   onOpenPuzzles: (startIndex?: number) => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
-  onRoomJoined: (roomId: string, state: GameState) => void;
+  onRoomJoined: (roomId: string, state: GameState, playerId: Player) => void;
 }
 
 const DIFFICULTIES: { id: Difficulty; label: string; desc: string }[] = [
@@ -94,6 +94,8 @@ export function MainMenu({
   const [loading, setLoading] = useState(false);
   const [hostColorSeen, setHostColorSeen] = useState<string | null>(null);
   const [joinerColor, setJoinerColor] = useState(DEFAULT_P2_COLOR);
+  const [roomSize, setRoomSize] = useState<PlayerCount>(2);
+  const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('quoridor_name') ?? ''; } catch { return ''; }
   });
@@ -125,11 +127,12 @@ export function MainMenu({
     setError('');
     try {
       const code = await generateUniqueRoomCode();
-      const state = getFreshState();
+      const state = getFreshState(roomSize);
       state.roomId = code;
       state.names.p1 = playerName.trim() || 'Hôte';
-      state.names.p2 = 'Adversaire';
-      state.colors = { p1: myColor, p2: myColor === PLAYER_COLORS[1].hex ? PLAYER_COLORS[2].hex : DEFAULT_P2_COLOR };
+      state.names.p2 = 'Joueur 2';
+      const freeColors = PLAYER_COLORS.map((color) => color.hex).filter((color) => color !== myColor);
+      state.colors = Object.fromEntries(PLAYER_IDS.map((player, index) => [player, player === 'p1' ? myColor : freeColors[index - 1] ?? PLAYER_COLORS[index].hex])) as GameState['colors'];
       await createRoom(state, code);
       onRoomCreated(code, state);
     } catch {
@@ -152,8 +155,14 @@ export function MainMenu({
         setError('Salle introuvable');
         return;
       }
+      if (info.availablePlayers <= 0) {
+        setError('Cette salle est complète');
+        return;
+      }
+      setRoomInfo(info);
       setHostColorSeen(info.hostColor);
-      setJoinerColor(info.hostColor === DEFAULT_P1_COLOR ? DEFAULT_P2_COLOR : DEFAULT_P1_COLOR);
+      const usedColors = PLAYER_IDS.filter((player) => info.players[player]).map((player) => info.colors[player]);
+      setJoinerColor(PLAYER_COLORS.map((color) => color.hex).find((color) => !usedColors.includes(color)) ?? DEFAULT_P2_COLOR);
       setView('multi-join');
     } catch {
       setError('Connexion impossible. Vérifiez votre connexion et réessayez.');
@@ -166,9 +175,9 @@ export function MainMenu({
     setLoading(true);
     setError('');
     try {
-      const state = await joinRoom(joinCode.toUpperCase(), joinerColor, playerName.trim());
-      if (state) {
-        onRoomJoined(joinCode.toUpperCase(), state);
+      const result = await joinRoom(joinCode.toUpperCase(), joinerColor, playerName.trim());
+      if (result) {
+        onRoomJoined(joinCode.toUpperCase(), result.state, result.playerId);
       } else {
         setError('Salle introuvable');
         setView('multi');
@@ -345,9 +354,26 @@ export function MainMenu({
 
               <div className="flex items-start gap-2 rounded-xl border border-[#3b2419] bg-[#180f0a] p-3 text-xs text-[var(--color-ivory)]/60">
                 <Info className="w-4 h-4 text-[var(--color-brass)] shrink-0 mt-0.5" />
-                <p>
-                  <strong className="text-[var(--color-ivory)]/80">Comment jouer en ligne :</strong> l'un de vous crée une salle et obtient un code à 4 caractères. L'autre entre ce code pour vous rejoindre — vous pouvez être n'importe où, il faut juste être connectés à Internet, pas au même Wi-Fi. La partie démarre dès que les deux joueurs sont présents.
-                </p>
+                  <p>
+                    <strong className="text-[var(--color-ivory)]/80">Comment jouer en ligne :</strong> créez une salle pour 2, 3 ou 4 joueurs, puis partagez le code à 4 caractères. Les participants rejoignent la prochaine place libre depuis n’importe où. La partie démarre dès que la salle est complète.
+                  </p>
+              </div>
+
+              <div className="rounded-xl border border-[#3b2419] bg-[#180f0a] p-3">
+                <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ivory)]/55">Nombre de joueurs</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([2, 3, 4] as PlayerCount[]).map((count) => (
+                    <button
+                      key={count}
+                      type="button"
+                      onClick={() => setRoomSize(count)}
+                      className={`rounded-lg border px-2 py-2 text-sm font-bold transition-colors ${roomSize === count ? 'border-[var(--color-brass)] bg-[var(--color-brass)]/20 text-[var(--color-brass)]' : 'border-[#5c3a24] text-[var(--color-ivory)]/60 hover:border-[var(--color-brass)]/60'}`}
+                    >
+                      {count} joueurs
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-[var(--color-ivory)]/40">Chaque joueur reçoit une couleur et un stock de murs adapté au format.</p>
               </div>
 
               <motion.button
@@ -399,10 +425,14 @@ export function MainMenu({
               </button>
 
               <p className="text-sm text-[var(--color-ivory)]/60">
-                Salle <span className="font-mono font-bold text-[var(--color-ivory)]">{joinCode}</span> trouvée. Choisissez votre couleur :
+                Salle <span className="font-mono font-bold text-[var(--color-ivory)]">{joinCode}</span> trouvée : <strong className="text-[var(--color-ivory)]">{roomInfo?.joinedPlayers ?? 0}/{roomInfo?.maxPlayers ?? 2}</strong> joueurs présents. Choisissez votre couleur :
               </p>
 
-              <ColorPicker value={joinerColor} onChange={setJoinerColor} excludeHex={hostColorSeen ?? undefined} />
+              <ColorPicker
+                value={joinerColor}
+                onChange={setJoinerColor}
+                excludeHex={roomInfo ? PLAYER_IDS.filter((player) => roomInfo.players[player]).map((player) => roomInfo.colors[player]) : hostColorSeen ?? undefined}
+              />
 
               <motion.button
                 whileHover={{ y: -2 }}

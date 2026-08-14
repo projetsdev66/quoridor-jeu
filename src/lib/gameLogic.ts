@@ -1,50 +1,130 @@
 export const SIZE = 9;
 export const START_WALLS = 10;
+export const MULTI_PLAYER_WALLS = 5;
 
-import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from './playerColors';
+import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR, PLAYER_COLORS } from './playerColors';
 
-export type Player = 'p1' | 'p2';
+export type Player = 'p1' | 'p2' | 'p3' | 'p4';
+export const PLAYER_IDS: Player[] = ['p1', 'p2', 'p3', 'p4'];
 export type Position = { r: number; c: number };
 export type Wall = { row: number; col: number; orientation: 'H' | 'V'; owner?: Player };
-export type MoveAction = 
-  | { type: 'move'; pos: Position } 
+export type MoveAction =
+  | { type: 'move'; pos: Position }
   | { type: 'wall'; wall: Wall };
+export type PlayerCount = 2 | 3 | 4;
+export type Goal = { axis: 'row' | 'col'; index: number };
 
 export interface GameState {
-  pos: { p1: Position; p2: Position };
-  wallsLeft: { p1: number; p2: number };
+  pos: Record<Player, Position>;
+  wallsLeft: Record<Player, number>;
   walls: Wall[];
   turn: Player;
   winner: Player | null;
-  players: { p1: boolean; p2: boolean };
-  names: { p1: string; p2: string };
-  colors: { p1: string; p2: string };
+  players: Record<Player, boolean>;
+  names: Record<Player, string>;
+  colors: Record<Player, string>;
   history: { player: Player; action: MoveAction; time: number }[];
   chat: { sender: string; text: string; time: number }[];
   lastAction: MoveAction | null;
   aiDifficulty: 'easy' | 'medium' | 'hard' | 'expert' | null;
   updatedAt: number;
-  roomId?: string; // For multiplayer
+  roomId?: string;
   mode?: 'classic' | 'blitz' | 'survival' | 'duo' | 'puzzle';
+  maxPlayers: PlayerCount;
 }
 
-export function getFreshState(): GameState {
+export function wallsForPlayerCount(maxPlayers: PlayerCount): number {
+  return maxPlayers === 2 ? START_WALLS : MULTI_PLAYER_WALLS;
+}
+
+export function getGoal(player: Player): Goal {
+  switch (player) {
+    case 'p1': return { axis: 'row', index: SIZE - 1 };
+    case 'p2': return { axis: 'row', index: 0 };
+    case 'p3': return { axis: 'col', index: SIZE - 1 };
+    case 'p4': return { axis: 'col', index: 0 };
+  }
+}
+
+export function getStartPosition(player: Player): Position {
+  const center = Math.floor(SIZE / 2);
+  switch (player) {
+    case 'p1': return { r: 0, c: center };
+    case 'p2': return { r: SIZE - 1, c: center };
+    case 'p3': return { r: center, c: 0 };
+    case 'p4': return { r: center, c: SIZE - 1 };
+  }
+}
+
+export function isGoalPosition(player: Player, pos: Position): boolean {
+  const goal = getGoal(player);
+  return goal.axis === 'row' ? pos.r === goal.index : pos.c === goal.index;
+}
+
+export function getFreshState(maxPlayers: PlayerCount = 2): GameState {
+  const walls = wallsForPlayerCount(maxPlayers);
+  const active = Object.fromEntries(PLAYER_IDS.map((player) => [player, player === 'p1'])) as Record<Player, boolean>;
+
+  const names = Object.fromEntries(PLAYER_IDS.map((player, index) => [player, `Joueur ${index + 1}`])) as Record<Player, string>;
+  const colors = Object.fromEntries(PLAYER_IDS.map((player, index) => [player, PLAYER_COLORS[index].hex])) as Record<Player, string>;
+  const pos = Object.fromEntries(PLAYER_IDS.map((player) => [player, getStartPosition(player)])) as Record<Player, Position>;
+  const wallsLeft = Object.fromEntries(PLAYER_IDS.map((player) => [player, active[player] ? walls : 0])) as Record<Player, number>;
+
   return {
-    pos: { p1: { r: 0, c: 4 }, p2: { r: SIZE - 1, c: 4 } },
-    wallsLeft: { p1: START_WALLS, p2: START_WALLS },
+    pos,
+    wallsLeft,
     walls: [],
     turn: 'p1',
     winner: null,
-    players: { p1: true, p2: false },
-    names: { p1: 'Joueur 1', p2: 'Joueur 2' },
-    colors: { p1: DEFAULT_P1_COLOR, p2: DEFAULT_P2_COLOR },
+    players: active,
+    names: { ...names, p1: 'Joueur 1', p2: 'Joueur 2' },
+    colors: { ...colors, p1: DEFAULT_P1_COLOR, p2: DEFAULT_P2_COLOR },
     history: [],
     chat: [],
     lastAction: null,
     aiDifficulty: null,
     updatedAt: Date.now(),
     mode: 'classic',
+    maxPlayers,
   };
+}
+
+export function normalizeGameState(data?: Partial<GameState> | null): GameState {
+  const raw = (data ?? {}) as Partial<GameState>;
+  const maxPlayers: PlayerCount = raw.maxPlayers === 3 || raw.maxPlayers === 4 ? raw.maxPlayers : 2;
+  const fresh = getFreshState(maxPlayers);
+  const players = { ...fresh.players, ...(raw.players ?? {}) } as Record<Player, boolean>;
+  for (const player of PLAYER_IDS) players[player] = PLAYER_IDS.indexOf(player) < maxPlayers && Boolean(players[player]);
+  players.p1 = true;
+
+  const wallsDefault = wallsForPlayerCount(maxPlayers);
+  const wallsLeft = { ...fresh.wallsLeft, ...(raw.wallsLeft ?? {}) } as Record<Player, number>;
+  for (const player of PLAYER_IDS) wallsLeft[player] = players[player] ? Math.max(0, Number(wallsLeft[player] ?? wallsDefault)) : 0;
+
+  const pos = { ...fresh.pos, ...(raw.pos ?? {}) } as Record<Player, Position>;
+  const names = { ...fresh.names, ...(raw.names ?? {}) } as Record<Player, string>;
+  const colors = { ...fresh.colors, ...(raw.colors ?? {}) } as Record<Player, string>;
+
+  return {
+    ...fresh,
+    ...raw,
+    maxPlayers,
+    pos,
+    wallsLeft,
+    players,
+    names,
+    colors,
+    walls: Array.isArray(raw.walls) ? raw.walls : [],
+    history: Array.isArray(raw.history) ? raw.history : [],
+    chat: Array.isArray(raw.chat) ? raw.chat : [],
+    turn: players[raw.turn as Player] ? raw.turn as Player : 'p1',
+    winner: players[raw.winner as Player] ? raw.winner as Player : null,
+    updatedAt: Number(raw.updatedAt ?? Date.now()),
+  };
+}
+
+export function activePlayers(state: Pick<GameState, 'players' | 'maxPlayers'>): Player[] {
+  return PLAYER_IDS.slice(0, state.maxPlayers).filter((player) => state.players[player]);
 }
 
 export function inBounds(r: number, c: number) {
@@ -53,27 +133,69 @@ export function inBounds(r: number, c: number) {
 
 export function wallBlocks(walls: Wall[], r1: number, c1: number, r2: number, c2: number): boolean {
   if (r1 === r2) {
-    // horizontal movement
     const c = Math.min(c1, c2);
     return walls.some((w) => w.orientation === 'V' && w.col === c && (w.row === r1 || w.row === r1 - 1));
-  } else {
-    // vertical movement
-    const r = Math.min(r1, r2);
-    return walls.some((w) => w.orientation === 'H' && w.row === r && (w.col === c1 || w.col === c1 - 1));
   }
+  const r = Math.min(r1, r2);
+  return walls.some((w) => w.orientation === 'H' && w.row === r && (w.col === c1 || w.col === c1 - 1));
 }
 
 export function wallsConflict(w: Wall, walls: Wall[]): boolean {
-  for (const ow of walls) {
-    if (ow.orientation === w.orientation && ow.row === w.row && ow.col === w.col) return true;
-    if (ow.orientation === w.orientation) {
-      if (w.orientation === 'H' && ow.row === w.row && Math.abs(ow.col - w.col) === 1) return true;
-      if (w.orientation === 'V' && ow.col === w.col && Math.abs(ow.row - w.row) === 1) return true;
-    } else {
-      if (ow.row === w.row && ow.col === w.col) return true;
+  for (const other of walls) {
+    if (other.orientation === w.orientation && other.row === w.row && other.col === w.col) return true;
+    if (other.orientation === w.orientation) {
+      if (w.orientation === 'H' && other.row === w.row && Math.abs(other.col - w.col) === 1) return true;
+      if (w.orientation === 'V' && other.col === w.col && Math.abs(other.row - w.row) === 1) return true;
+    } else if (other.row === w.row && other.col === w.col) {
+      return true;
     }
   }
   return false;
+}
+
+function bfs(start: Position, goal: (pos: Position) => boolean, walls: Wall[]): { distance: number; parent: Map<string, string | null>; goalKey: string | null } {
+  const keyOf = (r: number, c: number) => `${r},${c}`;
+  const parent = new Map<string, string | null>();
+  const startKey = keyOf(start.r, start.c);
+  parent.set(startKey, null);
+  const queue: Position[] = [start];
+  let head = 0;
+
+  while (head < queue.length) {
+    const current = queue[head++];
+    const currentKey = keyOf(current.r, current.c);
+    if (goal(current)) return { distance: head - 1 === 0 ? 0 : queue.indexOf(current), parent, goalKey: currentKey };
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const nr = current.r + dr;
+      const nc = current.c + dc;
+      const nextKey = keyOf(nr, nc);
+      if (inBounds(nr, nc) && !parent.has(nextKey) && !wallBlocks(walls, current.r, current.c, nr, nc)) {
+        parent.set(nextKey, currentKey);
+        queue.push({ r: nr, c: nc });
+      }
+    }
+  }
+  return { distance: Infinity, parent, goalKey: null };
+}
+
+function bfsDistanceInternal(start: Position, goal: (pos: Position) => boolean, walls: Wall[]): number {
+  const queue: Array<{ pos: Position; distance: number }> = [{ pos: start, distance: 0 }];
+  const visited = new Set([`${start.r},${start.c}`]);
+  let head = 0;
+  while (head < queue.length) {
+    const { pos, distance } = queue[head++];
+    if (goal(pos)) return distance;
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const nr = pos.r + dr;
+      const nc = pos.c + dc;
+      const key = `${nr},${nc}`;
+      if (inBounds(nr, nc) && !visited.has(key) && !wallBlocks(walls, pos.r, pos.c, nr, nc)) {
+        visited.add(key);
+        queue.push({ pos: { r: nr, c: nc }, distance: distance + 1 });
+      }
+    }
+  }
+  return Infinity;
 }
 
 export function hasPath(pos: Position, goalRow: number, walls: Wall[]): boolean {
@@ -81,135 +203,133 @@ export function hasPath(pos: Position, goalRow: number, walls: Wall[]): boolean 
 }
 
 export function getShortestPath(start: Position, goalRow: number, walls: Wall[]): Position[] {
-  const keyOf = (r: number, c: number) => `${r},${c}`;
-  const parent = new Map<string, string | null>();
-  const startKey = keyOf(start.r, start.c);
-  parent.set(startKey, null);
-
-  const queue: Position[] = [start];
-  let head = 0;
-  let goalKey: string | null = null;
-
-  while (head < queue.length) {
-    const { r, c } = queue[head++];
-    if (r === goalRow) { goalKey = keyOf(r, c); break; }
-
-    const dirs: [number, number][] = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of dirs) {
-      const nr = r + dr, nc = c + dc;
-      const nk = keyOf(nr, nc);
-      if (inBounds(nr, nc) && !parent.has(nk) && !wallBlocks(walls, r, c, nr, nc)) {
-        parent.set(nk, keyOf(r, c));
-        queue.push({ r: nr, c: nc });
-      }
-    }
-  }
-
-  if (!goalKey) return [];
+  const result = bfs(start, (pos) => pos.r === goalRow, walls);
+  if (!result.goalKey) return [];
   const path: Position[] = [];
-  let cur: string | null = goalKey;
-  while (cur !== null) {
-    const [r, c] = cur.split(',').map(Number);
+  let current: string | null = result.goalKey;
+  while (current !== null) {
+    const [r, c] = current.split(',').map(Number);
     path.unshift({ r, c });
-    cur = parent.get(cur) ?? null;
+    current = result.parent.get(current) ?? null;
   }
   return path;
 }
 
-export function bfsDistance(start: Position, goalRow: number, walls: Wall[]): number {
-  const queue: { r: number; c: number; dist: number }[] = [{ r: start.r, c: start.c, dist: 0 }];
-  const visited = new Set<string>();
-  visited.add(`${start.r},${start.c}`);
-
-  let head = 0;
-  while (head < queue.length) {
-    const { r, c, dist } = queue[head++];
-    if (r === goalRow) return dist;
-
-    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    for (const [dr, dc] of dirs) {
-      const nr = r + dr;
-      const nc = c + dc;
-      if (inBounds(nr, nc) && !visited.has(`${nr},${nc}`) && !wallBlocks(walls, r, c, nr, nc)) {
-        visited.add(`${nr},${nc}`);
-        queue.push({ r: nr, c: nc, dist: dist + 1 });
-      }
-    }
+export function getShortestPathForPlayer(start: Position, player: Player, walls: Wall[]): Position[] {
+  const goal = getGoal(player);
+  const result = bfs(start, (pos) => isGoalPosition(player, pos), walls);
+  if (!result.goalKey) return [];
+  const path: Position[] = [];
+  let current: string | null = result.goalKey;
+  while (current !== null) {
+    const [r, c] = current.split(',').map(Number);
+    path.unshift({ r, c });
+    current = result.parent.get(current) ?? null;
   }
-  return Infinity;
+  void goal;
+  return path;
+}
+
+export function bfsDistance(start: Position, goalRow: number, walls: Wall[]): number {
+  return bfsDistanceInternal(start, (pos) => pos.r === goalRow, walls);
+}
+
+export function bfsDistanceForPlayer(start: Position, player: Player, walls: Wall[]): number {
+  return bfsDistanceInternal(start, (pos) => isGoalPosition(player, pos), walls);
 }
 
 export function canPlaceWall(w: Wall, state: GameState): boolean {
+  if (state.winner || state.wallsLeft[state.turn] <= 0) return false;
   if (w.row < 0 || w.row > SIZE - 2 || w.col < 0 || w.col > SIZE - 2) return false;
   if (wallsConflict(w, state.walls)) return false;
-  
   const trial = state.walls.concat([w]);
-  if (!hasPath(state.pos.p1, SIZE - 1, trial)) return false;
-  if (!hasPath(state.pos.p2, 0, trial)) return false;
-  
-  return true;
+  return activePlayers(state).every((player) => hasPathToPlayerGoal(state.pos[player], player, trial));
 }
 
-export function getValidMoves(pos: Position, opp: Position, walls: Wall[]): Position[] {
+function hasPathToPlayerGoal(pos: Position, player: Player, walls: Wall[]): boolean {
+  return bfsDistanceForPlayer(pos, player, walls) !== Infinity;
+}
+
+export function getValidMoves(pos: Position, opponents: Position | Position[], walls: Wall[]): Position[] {
+  const occupied = Array.isArray(opponents) ? opponents : [opponents];
   const moves: Position[] = [];
-  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-  
-  for (const [dr, dc] of dirs) {
+  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
     const nr = pos.r + dr;
     const nc = pos.c + dc;
-    
-    if (!inBounds(nr, nc)) continue;
-    if (wallBlocks(walls, pos.r, pos.c, nr, nc)) continue;
-    
-    if (opp.r === nr && opp.c === nc) {
-      // Jump over opponent
-      const jr = nr + dr;
-      const jc = nc + dc;
-      
-      if (inBounds(jr, jc) && !wallBlocks(walls, nr, nc, jr, jc)) {
-        // Straight jump
-        moves.push({ r: jr, c: jc });
-      } else {
-        // Diagonal jumps
-        const perp = dr === 0 ? [[-1, 0], [1, 0]] : [[0, -1], [0, 1]];
-        for (const [pdr, pdc] of perp) {
-          const dr2 = nr + pdr;
-          const dc2 = nc + pdc;
-          if (inBounds(dr2, dc2) && !wallBlocks(walls, nr, nc, dr2, dc2)) {
-            moves.push({ r: dr2, c: dc2 });
-          }
-        }
-      }
-    } else {
+    if (!inBounds(nr, nc) || wallBlocks(walls, pos.r, pos.c, nr, nc)) continue;
+    const opponent = occupied.find((candidate) => candidate.r === nr && candidate.c === nc);
+    if (!opponent) {
       moves.push({ r: nr, c: nc });
+      continue;
+    }
+
+    const jr = nr + dr;
+    const jc = nc + dc;
+    if (inBounds(jr, jc) && !wallBlocks(walls, nr, nc, jr, jc) && !occupied.some((candidate) => candidate.r === jr && candidate.c === jc)) {
+      moves.push({ r: jr, c: jc });
+      continue;
+    }
+
+    const perpendicular = dr === 0 ? [[-1, 0], [1, 0]] : [[0, -1], [0, 1]];
+    for (const [pdr, pdc] of perpendicular) {
+      const diagonalR = nr + pdr;
+      const diagonalC = nc + pdc;
+      if (
+        inBounds(diagonalR, diagonalC) &&
+        !wallBlocks(walls, nr, nc, diagonalR, diagonalC) &&
+        !occupied.some((candidate) => candidate.r === diagonalR && candidate.c === diagonalC)
+      ) {
+        moves.push({ r: diagonalR, c: diagonalC });
+      }
     }
   }
   return moves;
 }
 
-export function applyMove(state: GameState, player: Player, pos: Position): GameState {
-  const newState = { ...state, pos: { ...state.pos, [player]: pos }, updatedAt: Date.now() };
-  newState.history = [...state.history, { player, action: { type: 'move', pos }, time: Date.now() }];
-  newState.lastAction = { type: 'move', pos };
-  
-  if ((player === 'p1' && pos.r === SIZE - 1) || (player === 'p2' && pos.r === 0)) {
-    newState.winner = player;
-  } else {
-    newState.turn = player === 'p1' ? 'p2' : 'p1';
+export function nextPlayer(state: Pick<GameState, 'players' | 'maxPlayers'>, current: Player): Player {
+  const players = activePlayers(state);
+  const currentIndex = players.indexOf(current);
+  for (let offset = 1; offset <= players.length; offset++) {
+    const candidate = players[(currentIndex + offset + players.length) % players.length];
+    if (candidate) return candidate;
   }
+  return 'p1';
+}
+
+function samePosition(a: Position, b: Position): boolean {
+  return a.r === b.r && a.c === b.c;
+}
+
+export function applyMove(state: GameState, player: Player, pos: Position): GameState {
+  if (state.winner || state.turn !== player || !state.players[player]) return state;
+  const opponents = activePlayers(state).filter((candidate) => candidate !== player).map((candidate) => state.pos[candidate]);
+  const valid = getValidMoves(state.pos[player], opponents, state.walls).some((candidate) => samePosition(candidate, pos));
+  if (!valid) return state;
+
+  const now = Date.now();
+  const newState: GameState = {
+    ...state,
+    pos: { ...state.pos, [player]: pos },
+    history: [...state.history, { player, action: { type: 'move', pos }, time: now }],
+    lastAction: { type: 'move', pos },
+    updatedAt: now,
+  };
+  newState.winner = isGoalPosition(player, pos) ? player : null;
+  if (!newState.winner) newState.turn = nextPlayer(state, player);
   return newState;
 }
 
 export function applyWall(state: GameState, player: Player, wall: Wall): GameState {
+  if (state.winner || state.turn !== player || !state.players[player] || state.wallsLeft[player] <= 0 || !canPlaceWall(wall, state)) return state;
+  const now = Date.now();
   const ownedWall: Wall = { ...wall, owner: player };
-  const newState = { 
-    ...state, 
+  return {
+    ...state,
     walls: [...state.walls, ownedWall],
     wallsLeft: { ...state.wallsLeft, [player]: state.wallsLeft[player] - 1 },
-    updatedAt: Date.now() 
+    history: [...state.history, { player, action: { type: 'wall', wall: ownedWall }, time: now }],
+    lastAction: { type: 'wall', wall: ownedWall },
+    turn: nextPlayer(state, player),
+    updatedAt: now,
   };
-  newState.history = [...state.history, { player, action: { type: 'wall', wall: ownedWall }, time: Date.now() }];
-  newState.lastAction = { type: 'wall', wall: ownedWall };
-  newState.turn = player === 'p1' ? 'p2' : 'p1';
-  return newState;
 }

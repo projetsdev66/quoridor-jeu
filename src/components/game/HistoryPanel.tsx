@@ -5,9 +5,10 @@ import { type GameState } from '@/lib/gameLogic';
 interface HistoryPanelProps {
   history: GameState['history'];
   names: GameState['names'];
+  colors?: GameState['colors'];
 }
 
-export function HistoryPanel({ history, names }: HistoryPanelProps) {
+export function HistoryPanel({ history, names, colors }: HistoryPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,16 +35,16 @@ export function HistoryPanel({ history, names }: HistoryPanelProps) {
         ) : (
           history.map((h, i) => {
             const Icon = h.action.type === 'move' ? Move : h.action.wall.orientation === 'H' ? RectangleHorizontal : RectangleVertical;
+            const playerColor = colors?.[h.player] ?? (h.player === 'p1' ? '#c0392b' : h.player === 'p2' ? '#3a6ea8' : h.player === 'p3' ? '#3f9142' : '#8659b5');
             return (
               <div key={i} className="flex items-center gap-2 text-sm px-1.5 py-1 rounded-md odd:bg-black/10">
                 <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    h.player === 'p1' ? 'bg-[var(--color-p1)]/20' : 'bg-[var(--color-p2)]/20'
-                  }`}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: `${playerColor}33` }}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${h.player === 'p1' ? 'text-[var(--color-p1)]' : 'text-[var(--color-p2)]'}`} />
+                  <Icon className="h-3.5 w-3.5" style={{ color: playerColor }} />
                 </div>
-                <span className={`font-bold shrink-0 ${h.player === 'p1' ? 'text-[var(--color-p1)]' : 'text-[var(--color-p2)]'}`}>
+                <span className="shrink-0 font-bold" style={{ color: playerColor }}>
                   {names[h.player]}
                 </span>
                 <span className="text-[var(--color-ivory)]/60 text-xs truncate">

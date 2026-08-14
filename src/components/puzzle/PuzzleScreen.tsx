@@ -15,11 +15,11 @@ interface PuzzleScreenProps {
 
 function stateFromPuzzle(puzzle: Puzzle): GameState {
   const state = getFreshState();
-  state.pos = { p1: { ...puzzle.p1Start }, p2: { ...puzzle.p2Start } };
+  state.pos = { ...state.pos, p1: { ...puzzle.p1Start }, p2: { ...puzzle.p2Start } };
   state.walls = puzzle.walls;
   state.turn = 'p1';
   state.mode = 'puzzle';
-  state.names = { p1: 'Vous', p2: 'Obstacle' };
+  state.names = { ...state.names, p1: 'Vous', p2: 'Obstacle' };
   return state;
 }
 

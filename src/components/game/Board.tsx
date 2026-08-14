@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
+  activePlayers,
   type GameState,
   type Player,
   type Position,
@@ -9,6 +10,7 @@ import {
   getValidMoves,
   canPlaceWall,
   getShortestPath,
+  getShortestPathForPlayer,
 } from '@/lib/gameLogic';
 import { Cell } from './Cell';
 import { Pawn } from './Pawn';
@@ -38,7 +40,7 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
   };
 
   const isMyTurn = gameState.turn === localPlayer && !gameState.winner;
-  const oppPos = gameState.pos[localPlayer === 'p1' ? 'p2' : 'p1'];
+  const opponentPositions = activePlayers(gameState).filter((player) => player !== localPlayer).map((player) => gameState.pos[player]);
   const myPos = gameState.pos[localPlayer];
 
   useEffect(() => {
@@ -56,15 +58,16 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
 
   const validMoves = useMemo(() => {
     if (mode !== 'move' || !isMyTurn) return [];
-    return getValidMoves(myPos, oppPos, gameState.walls);
-  }, [mode, isMyTurn, myPos, oppPos, gameState.walls]);
+    return getValidMoves(myPos, opponentPositions, gameState.walls);
+  }, [mode, isMyTurn, myPos, opponentPositions, gameState.walls]);
 
-  const myGoalRow = localPlayer === 'p1' ? SIZE - 1 : 0;
   const pathHintSet = useMemo(() => {
     if (!showPath) return new Set<string>();
-    const path = getShortestPath(myPos, myGoalRow, gameState.walls);
+    const path = localPlayer === 'p1' || localPlayer === 'p2'
+      ? getShortestPath(myPos, localPlayer === 'p1' ? SIZE - 1 : 0, gameState.walls)
+      : getShortestPathForPlayer(myPos, localPlayer, gameState.walls);
     return new Set(path.slice(1).map((p) => `${p.r},${p.c}`));
-  }, [showPath, myPos, myGoalRow, gameState.walls]);
+  }, [showPath, myPos, localPlayer, gameState.walls]);
 
   const lastMovePos = useMemo(() => {
     if (gameState.lastAction?.type === 'move') return gameState.lastAction.pos;
@@ -218,8 +221,17 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
           )}
         </AnimatePresence>
 
-        <Pawn player="p1" color={gameState.colors?.p1 ?? '#c0392b'} r={gameState.pos.p1.r} c={gameState.pos.p1.c} isActive={gameState.turn === 'p1' && !gameState.winner} reducedMotion={reducedMotion} />
-        <Pawn player="p2" color={gameState.colors?.p2 ?? '#3a6ea8'} r={gameState.pos.p2.r} c={gameState.pos.p2.c} isActive={gameState.turn === 'p2' && !gameState.winner} reducedMotion={reducedMotion} />
+        {activePlayers(gameState).map((player) => (
+          <Pawn
+            key={player}
+            player={player}
+            color={gameState.colors?.[player] ?? '#3a6ea8'}
+            r={gameState.pos[player].r}
+            c={gameState.pos[player].c}
+            isActive={gameState.turn === player && !gameState.winner}
+            reducedMotion={reducedMotion}
+          />
+        ))}
 
         {wallSlots}
       </div>

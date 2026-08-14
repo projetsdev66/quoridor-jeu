@@ -64,7 +64,7 @@ export function GamePage() {
     state.names.p2 = round
       ? `IA · Manche ${round} · ${DIFFICULTY_LABEL[difficulty]}`
       : `IA (${DIFFICULTY_LABEL[difficulty]})`;
-    state.colors = { p1: myColor, p2: opponentColorFor(myColor) };
+    state.colors = { ...state.colors, p1: myColor, p2: opponentColorFor(myColor) };
     return state;
   };
 
@@ -80,7 +80,7 @@ export function GamePage() {
     state.mode = 'duo';
     state.names.p1 = name || 'Joueur 1';
     state.names.p2 = 'Joueur 2';
-    state.colors = { p1: myColor, p2: opponentColorFor(myColor) };
+    state.colors = { ...state.colors, p1: myColor, p2: opponentColorFor(myColor) };
     setPlayerName(name || 'Joueur 1');
     setSurvivalActive(false);
     setActiveGame({ state, localPlayer: 'p1' });
@@ -125,9 +125,9 @@ export function GamePage() {
     setView('game');
   };
 
-  const handleRoomJoined = (roomId: string, state: GameState) => {
+  const handleRoomJoined = (roomId: string, state: GameState, playerId: Player) => {
     setSurvivalActive(false);
-    setActiveGame({ state, roomId, localPlayer: 'p2' });
+    setActiveGame({ state, roomId, localPlayer: playerId });
     setView('game');
   };
 

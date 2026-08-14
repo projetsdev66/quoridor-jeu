@@ -8,15 +8,17 @@ import {
   getValidMoves,
   canPlaceWall,
   bfsDistance,
+  normalizeGameState,
 } from './gameLogic';
 
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';
+type AIPlayer = 'p1' | 'p2';
 
 interface SearchState {
   pos: { p1: Position; p2: Position };
   wallsLeft: { p1: number; p2: number };
   walls: Wall[];
-  turn: Player;
+  turn: AIPlayer;
 }
 
 interface DifficultyConfig {
@@ -36,11 +38,11 @@ const CONFIG: Record<Difficulty, DifficultyConfig> = {
 
 const WIN_SCORE = 100000;
 
-function otherPlayer(p: Player): Player {
+function otherPlayer(p: AIPlayer): AIPlayer {
   return p === 'p1' ? 'p2' : 'p1';
 }
 
-function goalRowOf(p: Player): number {
+function goalRowOf(p: AIPlayer): number {
   return p === 'p1' ? SIZE - 1 : 0;
 }
 
@@ -49,17 +51,17 @@ function toSearchState(state: GameState): SearchState {
     pos: { p1: { ...state.pos.p1 }, p2: { ...state.pos.p2 } },
     wallsLeft: { ...state.wallsLeft },
     walls: state.walls,
-    turn: state.turn,
+    turn: state.turn === 'p2' ? 'p2' : 'p1',
   };
 }
 
-function checkWinner(s: SearchState): Player | null {
+function checkWinner(s: SearchState): AIPlayer | null {
   if (s.pos.p1.r === SIZE - 1) return 'p1';
   if (s.pos.p2.r === 0) return 'p2';
   return null;
 }
 
-function evaluate(s: SearchState, aiPlayer: Player): number {
+function evaluate(s: SearchState, aiPlayer: AIPlayer): number {
   const opp = otherPlayer(aiPlayer);
   const aiDist = bfsDistance(s.pos[aiPlayer], goalRowOf(aiPlayer), s.walls);
   const oppDist = bfsDistance(s.pos[opp], goalRowOf(opp), s.walls);
@@ -105,7 +107,7 @@ function orderedWallCandidates(
   for (const { wall } of scored) {
     if (out.length >= maxCount) break;
     // canPlaceWall expects a GameState-shaped object for path validation
-    if (canPlaceWall(wall, { pos: s.pos, walls: s.walls } as GameState)) {
+    if (canPlaceWall(wall, normalizeGameState({ pos: s.pos, walls: s.walls, wallsLeft: s.wallsLeft, turn: s.turn, players: { p1: true, p2: true }, maxPlayers: 2 } as Partial<GameState>))) {
       out.push(wall);
     }
   }
@@ -130,7 +132,7 @@ function applyAction(s: SearchState, action: MoveAction): SearchState {
 
 function generateActions(
   s: SearchState,
-  aiPlayer: Player,
+  aiPlayer: AIPlayer,
   cellPool: { row: number; col: number }[],
   wallCandidateCount: number,
   allowWalls: boolean,
@@ -154,7 +156,7 @@ function minimax(
   depth: number,
   alpha: number,
   beta: number,
-  aiPlayer: Player,
+  aiPlayer: AIPlayer,
   cellPool: { row: number; col: number }[],
   cfg: DifficultyConfig,
   deadline: number,
@@ -191,7 +193,7 @@ interface EngineResult {
   score: number;
 }
 
-function search(state: GameState, forPlayer: Player, cfg: DifficultyConfig): EngineResult {
+function search(state: GameState, forPlayer: AIPlayer, cfg: DifficultyConfig): EngineResult {
   const root = toSearchState(state);
   root.turn = forPlayer; // evaluate as if it's this player's turn to act
   const cellPool = candidateWallCells(root.pos.p1, root.pos.p2);
@@ -238,7 +240,7 @@ function search(state: GameState, forPlayer: Player, cfg: DifficultyConfig): Eng
 }
 
 /** Picks the AI's move for the given difficulty. */
-export function chooseAIMove(state: GameState, aiPlayer: Player, difficulty: Difficulty, boost = 0): MoveAction {
+export function chooseAIMove(state: GameState, aiPlayer: AIPlayer, difficulty: Difficulty, boost = 0): MoveAction {
   const base = CONFIG[difficulty];
   const cfg: DifficultyConfig = boost > 0
     ? {

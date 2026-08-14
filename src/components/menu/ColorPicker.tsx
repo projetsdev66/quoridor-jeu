@@ -4,11 +4,12 @@ import { PLAYER_COLORS } from '@/lib/playerColors';
 interface ColorPickerProps {
   value: string;
   onChange: (hex: string) => void;
-  excludeHex?: string;
+  excludeHex?: string | string[];
   label?: string;
 }
 
 export function ColorPicker({ value, onChange, excludeHex, label }: ColorPickerProps) {
+  const excludedColors = Array.isArray(excludeHex) ? excludeHex : excludeHex ? [excludeHex] : [];
   return (
     <div>
       {label && (
@@ -18,7 +19,7 @@ export function ColorPicker({ value, onChange, excludeHex, label }: ColorPickerP
       )}
       <div className="flex flex-wrap gap-1.5">
         {PLAYER_COLORS.map((c) => {
-          const disabled = c.hex === excludeHex;
+          const disabled = excludedColors.includes(c.hex);
           const selected = c.hex === value;
           return (
             <button

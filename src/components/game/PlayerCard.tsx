@@ -12,9 +12,10 @@ interface PlayerCardProps {
   turnIsUrgent?: boolean;
   turnDuration?: number;
   avatarLabel?: string;
+  wallCapacity?: number;
 }
 
-export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel }: PlayerCardProps) {
+export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel, wallCapacity = 10 }: PlayerCardProps) {
   const showTimer = isActive && isLocal && turnSecondsLeft !== undefined;
   const progress = turnSecondsLeft !== undefined ? Math.max(0, Math.min(1, turnSecondsLeft / turnDuration)) : 1;
 
@@ -61,7 +62,7 @@ export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, 
           </div>
 
           <div className="mt-2 flex items-center gap-1">
-            {Array.from({ length: 10 }).map((_, i) => (
+            {Array.from({ length: wallCapacity }).map((_, i) => (
               <div
                 key={i}
                 className="h-3 w-2 rounded-sm transition-all duration-300"
