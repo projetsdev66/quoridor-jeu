@@ -4,6 +4,8 @@ import { ArrowLeft, RotateCcw, CheckCircle2, XCircle, ChevronRight } from 'lucid
 import { getFreshState, applyMove, applyWall, type GameState, type Position, type Wall } from '@/lib/gameLogic';
 import { PUZZLES, type Puzzle } from '@/lib/puzzles';
 import { recordPuzzleSolved } from '@/lib/puzzleProgress';
+import { useSound } from '@/hooks/useSound';
+import { useSettings } from '@/hooks/useSettings';
 import { Board } from '@/components/game/Board';
 
 interface PuzzleScreenProps {
@@ -26,21 +28,26 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
   const puzzle = PUZZLES[index];
   const [state, setState] = useState<GameState>(() => stateFromPuzzle(puzzle));
   const [movesUsed, setMovesUsed] = useState(0);
-  const [wallsUsed, setWallsUsed] = useState(0);
   const [boardMode, setBoardMode] = useState<'move' | 'wallH' | 'wallV'>('move');
+  const { settings } = useSettings();
+  const { playMove, playWall, playError, playVictory } = useSound(settings.soundEnabled);
 
   const solved = state.pos.p1.r === 8;
   const failed = !solved && movesUsed >= puzzle.maxMoves;
 
   useEffect(() => {
-    if (solved) recordPuzzleSolved(index);
+    if (solved) {
+      recordPuzzleSolved(index);
+      playVictory();
+    } else if (failed) {
+      playError();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [solved]);
+  }, [solved, failed]);
 
   const reset = (p: Puzzle = puzzle) => {
     setState(stateFromPuzzle(p));
     setMovesUsed(0);
-    setWallsUsed(0);
     setBoardMode('move');
   };
 
@@ -59,6 +66,7 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
       return next;
     });
     setMovesUsed((m) => m + 1);
+    playMove();
   };
 
   const handleWall = (wall: Wall) => {
@@ -69,7 +77,7 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
       return next;
     });
     setMovesUsed((m) => m + 1);
-    setWallsUsed((w) => w + 1);
+    playWall();
   };
 
   return (
@@ -83,7 +91,7 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
         </span>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-5xl mx-auto w-full gap-4">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 pb-24 max-w-5xl mx-auto w-full gap-4">
         <div className="text-center max-w-md">
           <h2 className="text-2xl font-serif font-bold text-[var(--color-brass)]">{puzzle.title}</h2>
           <p className="text-sm text-[var(--color-ivory)]/60 mt-1">{puzzle.description}</p>
@@ -97,30 +105,35 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
           localPlayer="p1"
           mode={boardMode}
           showPath={false}
+          confirmWalls={settings.confirmWalls}
+          reducedMotion={settings.reducedMotion}
           onMove={handleMove}
           onWall={handleWall}
+          onInvalidAction={playError}
         />
 
         {!solved && !failed && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setBoardMode('move')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${boardMode === 'move' ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]' : 'border-[#3b2419] text-[var(--color-ivory)]/40'}`}
-            >
-              Déplacer
-            </button>
-            <button
-              onClick={() => setBoardMode('wallH')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${boardMode === 'wallH' ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]' : 'border-[#3b2419] text-[var(--color-ivory)]/40'}`}
-            >
-              Mur horizontal
-            </button>
-            <button
-              onClick={() => setBoardMode('wallV')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${boardMode === 'wallV' ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]' : 'border-[#3b2419] text-[var(--color-ivory)]/40'}`}
-            >
-              Mur vertical
-            </button>
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#3b2419] bg-[var(--color-wood-dark)]/95 p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur">
+            <div className="mx-auto flex max-w-[460px] justify-center gap-2">
+              <button
+                onClick={() => setBoardMode('move')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${boardMode === 'move' ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]' : 'border-[#3b2419] text-[var(--color-ivory)]/40'}`}
+              >
+                Déplacer
+              </button>
+              <button
+                onClick={() => setBoardMode('wallH')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${boardMode === 'wallH' ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]' : 'border-[#3b2419] text-[var(--color-ivory)]/40'}`}
+              >
+                Mur horizontal
+              </button>
+              <button
+                onClick={() => setBoardMode('wallV')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${boardMode === 'wallV' ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]' : 'border-[#3b2419] text-[var(--color-ivory)]/40'}`}
+              >
+                Mur vertical
+              </button>
+            </div>
           </div>
         )}
 

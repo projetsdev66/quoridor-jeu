@@ -122,15 +122,21 @@ export function MainMenu({
 
   const handleCreateRoom = async () => {
     setLoading(true);
-    const code = await generateUniqueRoomCode();
-    const state = getFreshState();
-    state.roomId = code;
-    state.names.p1 = playerName.trim() || 'Hôte';
-    state.names.p2 = 'Adversaire';
-    state.colors = { p1: myColor, p2: myColor === PLAYER_COLORS[1].hex ? PLAYER_COLORS[2].hex : DEFAULT_P2_COLOR };
-    await createRoom(state, code);
-    setLoading(false);
-    onRoomCreated(code, state);
+    setError('');
+    try {
+      const code = await generateUniqueRoomCode();
+      const state = getFreshState();
+      state.roomId = code;
+      state.names.p1 = playerName.trim() || 'Hôte';
+      state.names.p2 = 'Adversaire';
+      state.colors = { p1: myColor, p2: myColor === PLAYER_COLORS[1].hex ? PLAYER_COLORS[2].hex : DEFAULT_P2_COLOR };
+      await createRoom(state, code);
+      onRoomCreated(code, state);
+    } catch {
+      setError('Connexion impossible. Vérifiez votre connexion et réessayez.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLookupRoom = async () => {
@@ -140,26 +146,38 @@ export function MainMenu({
     }
     setLoading(true);
     setError('');
-    const info = await peekRoom(joinCode.toUpperCase());
-    setLoading(false);
-    if (!info) {
-      setError('Salle introuvable');
-      return;
+    try {
+      const info = await peekRoom(joinCode.toUpperCase());
+      if (!info) {
+        setError('Salle introuvable');
+        return;
+      }
+      setHostColorSeen(info.hostColor);
+      setJoinerColor(info.hostColor === DEFAULT_P1_COLOR ? DEFAULT_P2_COLOR : DEFAULT_P1_COLOR);
+      setView('multi-join');
+    } catch {
+      setError('Connexion impossible. Vérifiez votre connexion et réessayez.');
+    } finally {
+      setLoading(false);
     }
-    setHostColorSeen(info.hostColor);
-    setJoinerColor(info.hostColor === DEFAULT_P1_COLOR ? DEFAULT_P2_COLOR : DEFAULT_P1_COLOR);
-    setView('multi-join');
   };
 
   const handleConfirmJoin = async () => {
     setLoading(true);
-    const state = await joinRoom(joinCode.toUpperCase(), joinerColor, playerName.trim());
-    setLoading(false);
-    if (state) {
-      onRoomJoined(joinCode.toUpperCase(), state);
-    } else {
-      setError('Salle introuvable');
+    setError('');
+    try {
+      const state = await joinRoom(joinCode.toUpperCase(), joinerColor, playerName.trim());
+      if (state) {
+        onRoomJoined(joinCode.toUpperCase(), state);
+      } else {
+        setError('Salle introuvable');
+        setView('multi');
+      }
+    } catch {
+      setError('Connexion impossible. Vérifiez votre connexion et réessayez.');
       setView('multi');
+    } finally {
+      setLoading(false);
     }
   };
 

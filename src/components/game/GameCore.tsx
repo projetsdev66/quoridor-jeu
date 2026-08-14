@@ -50,7 +50,14 @@ function getModeLabel(mode?: GameState['mode']) {
 }
 
 export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult, survivalRound, survivalSearchBoost = 0, onRestartSurvivalRun }: GameCoreProps) {
-  const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId);
+  const { toast } = useToast();
+  const handleSyncError = () => {
+    toast({
+      title: 'Connexion perdue',
+      description: "Impossible de synchroniser la partie. Vérifiez votre connexion Internet.",
+    });
+  };
+  const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId, roomId ? handleSyncError : undefined);
   const [mode, setMode] = useState<'move' | 'wallH' | 'wallV'>('move');
   const [showRules, setShowRules] = useState(false);
   const { settings, updateSetting, resetSettings } = useSettings();
@@ -59,7 +66,6 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
 
   const { formatted: gameTime } = useTimer(!gameState.winner, gameState.roomId || 'local');
   const { playMove, playWall, playError, playVictory } = useSound(settings.soundEnabled);
-  const { toast } = useToast();
 
   const { stats, recordWin, recordLoss } = useStats();
 
@@ -74,8 +80,12 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
     if (gameState.winner && !hasRecordedRef.current) {
       hasRecordedRef.current = true;
       const won = gameState.winner === localPlayerId;
-      if (won) recordWin();
-      else recordLoss();
+
+      // Duo local doesn't have a single "you" — skip personal win/loss stats for it.
+      if (!isLocalDuo) {
+        if (won) recordWin();
+        else recordLoss();
+      }
 
       if (gameState.mode === 'survival' && typeof survivalRound === 'number') {
         const roundsSurvived = won ? survivalRound : survivalRound - 1;
@@ -91,7 +101,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       hasRecordedRef.current = false;
       setSurvivalOutcome(null);
     }
-  }, [gameState.winner, gameState.mode, localPlayerId, onSurvivalResult, recordLoss, recordWin, survivalRound]);
+  }, [gameState.winner, gameState.mode, localPlayerId, isLocalDuo, onSurvivalResult, recordLoss, recordWin, survivalRound]);
 
   const isMyTurn = gameState.turn === localPlayerId && !gameState.winner;
   const isBoardTurn = gameState.turn === boardPlayer && !gameState.winner;
