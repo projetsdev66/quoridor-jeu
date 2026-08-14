@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Copy, Lightbulb, Sparkles } from 'lucide-react';
 import { activePlayers, type GameState, type Player } from '@/lib/gameLogic';
+import { leaveRoom, type RoomSyncIssue } from '@/lib/firebase';
 import { getBestSurvivalRound, recordSurvivalRound } from '@/lib/survivalRecord';
 import { useGame } from '@/hooks/useGame';
 import { useAI } from '@/hooks/useAI';
@@ -53,13 +54,29 @@ function getModeLabel(mode?: GameState['mode']) {
 
 export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurvivalResult, survivalRound, survivalSearchBoost = 0, onRestartSurvivalRun }: GameCoreProps) {
   const { toast } = useToast();
-  const handleSyncError = useCallback(() => {
+  const handleSyncError = useCallback((issue: RoomSyncIssue) => {
+    if (issue === 'closed') {
+      toast({
+        title: 'Salle fermée',
+        description: 'La salle n’est plus disponible. Retour au menu.',
+      });
+      onHome();
+      return;
+    }
+
     toast({
       title: 'Connexion perdue',
       description: "Impossible de synchroniser la partie. Vérifiez votre connexion Internet.",
     });
-  }, [toast]);
+  }, [onHome, toast]);
   const { gameState, dispatchMove, dispatchWall, dispatchChat, restartGame } = useGame(initialState, roomId, roomId ? handleSyncError : undefined);
+  const handleExit = useCallback(() => {
+    if (!roomId) {
+      onHome();
+      return;
+    }
+    void leaveRoom(roomId, localPlayerId).catch(() => undefined).finally(onHome);
+  }, [roomId, localPlayerId, onHome]);
   const [mode, setMode] = useState<'move' | 'wallH' | 'wallV'>('move');
   const [showRules, setShowRules] = useState(false);
   const { settings, updateSetting, resetSettings } = useSettings();
@@ -170,7 +187,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       <TopBar
         soundEnabled={settings.soundEnabled}
         toggleSound={() => updateSetting('soundEnabled', !settings.soundEnabled)}
-        onQuit={onHome}
+        onQuit={handleExit}
         onRules={() => setShowRules(true)}
         onSettings={() => setShowSettings(true)}
         onCopyRoom={roomId ? handleCopyRoom : undefined}
@@ -352,7 +369,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             passAndPlay={isLocalDuo}
             stats={stats}
             onRestart={restartGame}
-            onHome={onHome}
+            onHome={handleExit}
             isSurvival={gameState.mode === 'survival'}
             survivalRoundNumber={survivalRound}
             roundsSurvived={survivalOutcome?.roundsSurvived}
@@ -381,7 +398,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       />
 
       {roomId && participants.length < gameState.maxPlayers && !gameState.winner && (
-        <WaitingOverlay roomId={roomId} maxPlayers={gameState.maxPlayers} joinedPlayers={participants.length} onQuit={onHome} />
+        <WaitingOverlay roomId={roomId} maxPlayers={gameState.maxPlayers} joinedPlayers={participants.length} onQuit={handleExit} />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, RotateCcw, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
-import { getFreshState, applyMove, applyWall, type GameState, type Position, type Wall } from '@/lib/gameLogic';
+import { getFreshState, applyMove, applyWall, isGoalPosition, type GameState, type Position, type Wall } from '@/lib/gameLogic';
 import { PUZZLES, type Puzzle } from '@/lib/puzzles';
 import { recordPuzzleSolved } from '@/lib/puzzleProgress';
 import { useSound } from '@/hooks/useSound';
@@ -32,7 +32,7 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
   const { settings } = useSettings();
   const { playMove, playWall, playError, playVictory } = useSound(settings.soundEnabled);
 
-  const solved = state.pos.p1.r === 8;
+  const solved = isGoalPosition('p1', state.pos.p1);
   const failed = !solved && movesUsed >= puzzle.maxMoves;
 
   useEffect(() => {
@@ -59,24 +59,24 @@ export function PuzzleScreen({ onHome, startIndex = 0 }: PuzzleScreenProps) {
 
   const handleMove = (pos: Position) => {
     if (solved || failed) return;
-    setState((s) => {
-      const next = applyMove(s, 'p1', pos);
-      next.turn = 'p1'; // single-player puzzle: it's always "your" turn
-      next.winner = null; // solved state is derived from position, not the win field
-      return next;
-    });
-    setMovesUsed((m) => m + 1);
+    const next = applyMove(state, 'p1', pos);
+    if (next === state) return;
+
+    next.turn = 'p1'; // single-player puzzle: it's always "your" turn
+    next.winner = null; // solved state is derived from position, not the win field
+    setState(next);
+    setMovesUsed((value) => value + 1);
     playMove();
   };
 
   const handleWall = (wall: Wall) => {
     if (solved || failed) return;
-    setState((s) => {
-      const next = applyWall(s, 'p1', wall);
-      next.turn = 'p1';
-      return next;
-    });
-    setMovesUsed((m) => m + 1);
+    const next = applyWall(state, 'p1', wall);
+    if (next === state) return;
+
+    next.turn = 'p1';
+    setState(next);
+    setMovesUsed((value) => value + 1);
     playWall();
   };
 

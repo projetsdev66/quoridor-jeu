@@ -140,7 +140,8 @@ export function MainMenu({
       state.names.p2 = 'Joueur 2';
       const freeColors = PLAYER_COLORS.map((color) => color.hex).filter((color) => color !== myColor);
       state.colors = Object.fromEntries(PLAYER_IDS.map((player, index) => [player, player === 'p1' ? myColor : freeColors[index - 1] ?? PLAYER_COLORS[index].hex])) as GameState['colors'];
-      await createRoom(state, code);
+      const created = await createRoom(state, code);
+      if (!created) throw new Error('ROOM_CODE_COLLISION');
       onRoomCreated(code, state);
     } catch {
       setError('Connexion impossible. Vérifiez votre connexion et réessayez.');
@@ -150,14 +151,15 @@ export function MainMenu({
   };
 
   const handleLookupRoom = async () => {
-    if (!joinCode || joinCode.length !== 4) {
+    const normalizedCode = joinCode.trim().toUpperCase();
+    if (normalizedCode.length !== 4) {
       setError('Le code doit contenir 4 caractères');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const info = await peekRoom(joinCode.toUpperCase());
+      const info = await peekRoom(normalizedCode);
       if (!info) {
         setError('Salle introuvable');
         return;
@@ -179,12 +181,18 @@ export function MainMenu({
   };
 
   const handleConfirmJoin = async () => {
+    const normalizedCode = joinCode.trim().toUpperCase();
+    if (normalizedCode.length !== 4) {
+      setError('Le code doit contenir 4 caractères');
+      setView('multi');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const result = await joinRoom(joinCode.toUpperCase(), joinerColor, playerName.trim());
+      const result = await joinRoom(normalizedCode, joinerColor, playerName.trim());
       if (result) {
-        onRoomJoined(joinCode.toUpperCase(), result.state, result.playerId);
+        onRoomJoined(normalizedCode, result.state, result.playerId);
       } else {
         setError('Salle introuvable');
         setView('multi');
@@ -461,9 +469,13 @@ export function MainMenu({
                   type="text"
                   placeholder="Code de salle (4 lettres)"
                   value={joinCode}
-                  onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                  onChange={e => setJoinCode(e.target.value.replace(/[^a-z0-9]/gi, '').slice(0, 4).toUpperCase())}
                   maxLength={4}
-                  className="w-full bg-[#180f0a] border border-[#3b2419] rounded-xl px-4 py-3 text-[var(--color-ivory)] font-mono tracking-widest text-center text-xl mb-3 focus:outline-none focus:border-[var(--color-brass)] uppercase"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  aria-label="Code de salle à quatre caractères"
+                  className="w-full bg-[#180f0a] border border-[#3b2419] rounded-xl px-4 py-3 text-[var(--color-ivory)] font-mono tracking-widest text-center text-xl mb-3 focus:outline-none focus:border-[var(--color-brass)] focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]/60 uppercase"
                 />
                 {error && <p className="text-red-400 text-sm text-center mb-3">{error}</p>}
                 <motion.button

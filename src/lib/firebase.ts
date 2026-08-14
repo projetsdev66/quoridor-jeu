@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, get, update, runTransaction, type DatabaseReference } from 'firebase/database';
-import { type GameState, type Player, PLAYER_IDS, type PlayerCount, getFreshState, normalizeGameState, wallsForPlayerCount } from './gameLogic';
+import { type GameState, type Player, PLAYER_IDS, type PlayerCount, getFreshState, normalizeGameState, nextPlayer, wallsForPlayerCount } from './gameLogic';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDXUJLgFNufpdZLMWjxRBQNGLOukvLx_4w',
@@ -32,8 +32,12 @@ export function getRoomRef(roomId: string): DatabaseReference {
   return ref(db, `rooms/${roomId.toUpperCase()}`);
 }
 
-export async function createRoom(initialState: GameState, roomId: string): Promise<void> {
-  await set(getRoomRef(roomId), normalizeGameState(initialState));
+export async function createRoom(initialState: GameState, roomId: string): Promise<boolean> {
+  const result = await runTransaction(getRoomRef(roomId), (currentData) => {
+    if (currentData) return;
+    return normalizeGameState(initialState);
+  });
+  return result.committed;
 }
 
 export async function updateGameState(roomId: string, updates: Partial<GameState>): Promise<void> {
@@ -113,12 +117,46 @@ export async function joinRoom(roomId: string, joinerColor?: string, joinerName?
   return { state: normalizeGameState(transaction.snapshot.val()), playerId: assignedPlayer };
 }
 
-export function subscribeToRoom(roomId: string, onState: (state: GameState) => void, onError?: () => void): () => void {
+export async function leaveRoom(roomId: string, playerId: Player): Promise<boolean> {
+  const roomRef = getRoomRef(roomId);
+  const result = await runTransaction(roomRef, (currentData) => {
+    if (!currentData) return currentData;
+    const current = normalizeGameState(currentData as Partial<GameState>);
+
+    // The host owns the room lifecycle. Removing the host removes the room so
+    // other clients do not remain trapped in a stale waiting/game state.
+    if (playerId === 'p1') return null;
+    if (!current.players[playerId]) return currentData;
+
+    const players = { ...current.players, [playerId]: false };
+    const wallsLeft = { ...current.wallsLeft, [playerId]: 0 };
+    const names = { ...current.names, [playerId]: `Joueur ${Number(playerId.slice(1))}` };
+    const nextState = normalizeGameState({
+      ...current,
+      players,
+      wallsLeft,
+      names,
+      turn: current.turn === playerId ? nextPlayer({ players, maxPlayers: current.maxPlayers }, playerId) : current.turn,
+      updatedAt: Date.now(),
+    });
+    return nextState;
+  });
+  return result.committed;
+}
+
+export type RoomSyncIssue = 'closed' | 'error';
+
+export function subscribeToRoom(
+  roomId: string,
+  onState: (state: GameState) => void,
+  onError?: (issue: RoomSyncIssue) => void,
+): () => void {
   return onValue(
     getRoomRef(roomId),
     (snapshot) => {
       if (snapshot.exists()) onState(normalizeGameState(snapshot.val()));
+      else onError?.('closed');
     },
-    () => onError?.(),
+    () => onError?.('error'),
   );
 }

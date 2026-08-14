@@ -11,7 +11,7 @@ import {
   applyMove,
   applyWall,
 } from '../lib/gameLogic';
-import { transactGameState, subscribeToRoom } from '../lib/firebase';
+import { transactGameState, subscribeToRoom, type RoomSyncIssue } from '../lib/firebase';
 
 function resetStateFrom(current: GameState, roomId?: string): GameState {
   const fresh = getFreshState(current.maxPlayers);
@@ -28,7 +28,7 @@ function resetStateFrom(current: GameState, roomId?: string): GameState {
   return fresh;
 }
 
-export function useGame(initialState?: GameState, roomId?: string, onSyncError?: () => void) {
+export function useGame(initialState?: GameState, roomId?: string, onSyncError?: (issue: RoomSyncIssue) => void) {
   const [gameState, setGameState] = useState<GameState>(() => normalizeGameState(initialState));
   const [localPlayer, setLocalPlayer] = useState<Player>('p1');
 
@@ -42,7 +42,7 @@ export function useGame(initialState?: GameState, roomId?: string, onSyncError?:
       void transactGameState(roomId, (current) => {
         const next = applyMove(current, player, pos);
         return next === current ? null : next;
-      }).catch(() => onSyncError?.());
+      }).catch(() => onSyncError?.('error'));
       return;
     }
     setGameState((current) => applyMove(current, player, pos));
@@ -53,7 +53,7 @@ export function useGame(initialState?: GameState, roomId?: string, onSyncError?:
       void transactGameState(roomId, (current) => {
         const next = applyWall(current, player, wall);
         return next === current ? null : next;
-      }).catch(() => onSyncError?.());
+      }).catch(() => onSyncError?.('error'));
       return;
     }
     setGameState((current) => applyWall(current, player, wall));
@@ -67,7 +67,7 @@ export function useGame(initialState?: GameState, roomId?: string, onSyncError?:
       void transactGameState(roomId, (current) => {
         const chat = [...current.chat, { sender: sender.trim() || 'Joueur', text: cleanText, time: Date.now() }].slice(-100);
         return { ...current, chat, updatedAt: Date.now() };
-      }).catch(() => onSyncError?.());
+      }).catch(() => onSyncError?.('error'));
       return;
     }
 
@@ -81,7 +81,7 @@ export function useGame(initialState?: GameState, roomId?: string, onSyncError?:
   const restartGame = useCallback(() => {
     if (roomId) {
       void transactGameState(roomId, (current) => resetStateFrom(current, roomId))
-        .catch(() => onSyncError?.());
+        .catch(() => onSyncError?.('error'));
       return;
     }
     setGameState((current) => resetStateFrom(current));
