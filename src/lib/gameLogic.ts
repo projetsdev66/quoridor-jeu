@@ -19,7 +19,6 @@ export interface GameState {
   players: { p1: boolean; p2: boolean };
   names: { p1: string; p2: string };
   colors: { p1: string; p2: string };
-  tokens: { p1: string | null; p2: string | null };
   history: { player: Player; action: MoveAction; time: number }[];
   chat: { sender: string; text: string; time: number }[];
   lastAction: MoveAction | null;
@@ -39,7 +38,6 @@ export function getFreshState(): GameState {
     players: { p1: true, p2: false },
     names: { p1: 'Joueur 1', p2: 'Joueur 2' },
     colors: { p1: DEFAULT_P1_COLOR, p2: DEFAULT_P2_COLOR },
-    tokens: { p1: null, p2: null },
     history: [],
     chat: [],
     lastAction: null,
@@ -47,20 +45,6 @@ export function getFreshState(): GameState {
     updatedAt: Date.now(),
     mode: 'classic',
   };
-}
-
-/** Enumerate every legal wall placement for the current position (both orientations). */
-export function getAllValidWalls(state: GameState): Wall[] {
-  const out: Wall[] = [];
-  for (let r = 0; r < SIZE - 1; r++) {
-    for (let c = 0; c < SIZE - 1; c++) {
-      const hw: Wall = { row: r, col: c, orientation: 'H' };
-      const vw: Wall = { row: r, col: c, orientation: 'V' };
-      if (canPlaceWall(hw, state)) out.push(hw);
-      if (canPlaceWall(vw, state)) out.push(vw);
-    }
-  }
-  return out;
 }
 
 export function inBounds(r: number, c: number) {
