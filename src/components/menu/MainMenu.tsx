@@ -10,6 +10,8 @@ import { PLAYER_COLORS, DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from '@/lib/playerC
 import type { Difficulty } from '@/lib/aiEngine';
 import { RulesOverlay } from '@/components/game/RulesOverlay';
 import { ColorPicker } from '@/components/menu/ColorPicker';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 
 interface MainMenuProps {
   onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz', myColor: string) => void;
@@ -41,11 +43,11 @@ function MenuButton({ icon, label, subtitle, onClick, accent }: MenuButtonProps)
       onClick={onClick}
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
-      className={`w-full flex items-center justify-between p-3.5 rounded-xl text-left transition-colors border ${
-        accent
-          ? 'bg-[var(--color-brass)]/10 hover:bg-[var(--color-brass)]/20 border-[var(--color-brass)]/30'
-          : 'bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] border-transparent hover:border-[#5c3a24]'
-      }`}
+      className={buttonVariants({
+        variant: accent ? 'outline' : 'wood',
+        size: 'lg',
+        className: 'w-full justify-between rounded-xl p-3.5 text-left font-sans',
+      })}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full bg-[var(--color-brass)]/15 border border-[var(--color-brass)]/30 flex items-center justify-center shrink-0">
@@ -67,7 +69,11 @@ function GridButton({ icon, label, subtitle, onClick }: MenuButtonProps) {
       onClick={onClick}
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
-      className="flex flex-col items-start gap-1.5 p-3 rounded-xl text-left bg-[var(--color-wood-medium)] hover:bg-[#4a2e1b] border border-transparent hover:border-[#5c3a24] transition-colors"
+      className={buttonVariants({
+        variant: 'wood',
+        size: 'lg',
+        className: 'flex flex-col items-start gap-1.5 rounded-xl p-3 text-left font-sans',
+      })}
     >
       <div className="w-8 h-8 rounded-full bg-[var(--color-brass)]/15 border border-[var(--color-brass)]/30 flex items-center justify-center">
         {icon}
@@ -210,7 +216,7 @@ export function MainMenu({
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-6xl sm:text-7xl font-serif font-bold tracking-widest mb-2 bg-gradient-to-b from-[#f0d090] via-[var(--color-brass)] to-[#a87c3d] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(201,154,82,0.35)]"
+          className="animate-brass-shimmer text-6xl sm:text-7xl font-serif font-bold tracking-widest mb-2 bg-[linear-gradient(120deg,#a87c3d_0%,#f0d090_38%,#c99a52_60%,#a87c3d_100%)] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(201,154,82,0.35)]"
         >
           QUORIDOR
         </motion.h1>
@@ -225,7 +231,7 @@ export function MainMenu({
         </button>
 
         {totalGames > 0 && (
-          <div className="mt-4 inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-wood-dark)]/80 border border-[#3b2419] text-sm">
+          <Badge variant="wood" className="mt-4 px-4 py-1.5 text-sm">
             <span className="flex items-center gap-1 text-[var(--color-brass)]">
               <Trophy className="w-3.5 h-3.5" />
               <span className="font-bold">{stats.wins}</span>
@@ -242,7 +248,7 @@ export function MainMenu({
                 </span>
               </>
             )}
-          </div>
+          </Badge>
         )}
       </div>
 
@@ -261,7 +267,7 @@ export function MainMenu({
                   value={playerName}
                   onChange={e => saveName(e.target.value)}
                   maxLength={20}
-                  className="w-full bg-[#180f0a] border border-[#3b2419] rounded-xl px-4 py-2 text-[var(--color-ivory)] focus:outline-none focus:border-[var(--color-brass)] placeholder:text-[var(--color-ivory)]/25 text-sm transition-colors"
+                  className="w-full rounded-xl border border-[#3b2419] bg-[#180f0a] px-4 py-2 text-sm text-[var(--color-ivory)] placeholder:text-[var(--color-ivory)]/25 transition-colors focus:border-[var(--color-brass)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brass)]/20"
                 />
               </div>
 
@@ -272,7 +278,11 @@ export function MainMenu({
                 onClick={() => openDifficulty('classic')}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl text-left bg-gradient-to-br from-[var(--color-brass)] to-[#a8793a] text-[#180f0a] shadow-[0_10px_30px_-8px_rgba(201,154,82,0.55)]"
+                className={buttonVariants({
+                  variant: 'brass',
+                  size: 'lg',
+                  className: 'w-full justify-start gap-4 rounded-2xl p-4 text-left font-sans',
+                })}
               >
                 <div className="w-11 h-11 rounded-full bg-[#180f0a]/15 flex items-center justify-center shrink-0">
                   <User className="w-5 h-5" />
@@ -354,7 +364,10 @@ export function MainMenu({
               </button>
 
               <div>
-                <h3 className="text-xl font-serif text-[var(--color-brass)]">Partie locale</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xl font-serif text-[var(--color-brass)]">Partie locale</h3>
+                  <Badge variant="brass">2–4 joueurs</Badge>
+                </div>
                 <p className="mt-1 text-xs text-[var(--color-ivory)]/50">Passez l’appareil au joueur suivant. Tous les pions jouent sur le même plateau.</p>
               </div>
 
@@ -366,7 +379,11 @@ export function MainMenu({
                       key={count}
                       type="button"
                       onClick={() => setLocalPlayerCount(count)}
-                      className={`rounded-lg border px-2 py-2 text-sm font-bold transition-colors ${localPlayerCount === count ? 'border-[var(--color-brass)] bg-[var(--color-brass)]/20 text-[var(--color-brass)]' : 'border-[#5c3a24] text-[var(--color-ivory)]/60 hover:border-[var(--color-brass)]/60'}`}
+                      className={buttonVariants({
+                        variant: localPlayerCount === count ? 'outline' : 'ghost',
+                        size: 'sm',
+                        className: 'rounded-lg border-[#5c3a24] px-2 py-2',
+                      })}
                     >
                       {count} joueurs
                     </button>
@@ -379,7 +396,7 @@ export function MainMenu({
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onStartDuo(playerName.trim(), myColor, localPlayerCount)}
-                className="w-full py-4 bg-[var(--color-brass)] text-[#180f0a] font-bold rounded-xl transition-colors hover:bg-[#e2a868]"
+                className={buttonVariants({ variant: 'brass', size: 'lg', className: 'w-full rounded-xl' })}
               >
                 Lancer la partie locale
               </motion.button>
@@ -392,7 +409,7 @@ export function MainMenu({
                 <ArrowLeft className="w-4 h-4" /> Retour
               </button>
 
-              <div className="flex items-start gap-2 rounded-xl border border-[#3b2419] bg-[#180f0a] p-3 text-xs text-[var(--color-ivory)]/60">
+              <div className="flex items-start gap-2 rounded-xl border border-[var(--color-brass)]/20 bg-[var(--color-brass)]/[0.06] p-3 text-xs text-[var(--color-ivory)]/65 shadow-inner">
                 <Info className="w-4 h-4 text-[var(--color-brass)] shrink-0 mt-0.5" />
                   <p>
                     <strong className="text-[var(--color-ivory)]/80">Comment jouer en ligne :</strong> créez une salle pour 2, 3 ou 4 joueurs, puis partagez le code à 4 caractères. Les participants rejoignent la prochaine place libre depuis n’importe où. La partie démarre dès que la salle est complète.
@@ -407,7 +424,11 @@ export function MainMenu({
                       key={count}
                       type="button"
                       onClick={() => setRoomSize(count)}
-                      className={`rounded-lg border px-2 py-2 text-sm font-bold transition-colors ${roomSize === count ? 'border-[var(--color-brass)] bg-[var(--color-brass)]/20 text-[var(--color-brass)]' : 'border-[#5c3a24] text-[var(--color-ivory)]/60 hover:border-[var(--color-brass)]/60'}`}
+                      className={buttonVariants({
+                        variant: roomSize === count ? 'outline' : 'ghost',
+                        size: 'sm',
+                        className: 'rounded-lg border-[#5c3a24] px-2 py-2',
+                      })}
                     >
                       {count} joueurs
                     </button>
@@ -421,7 +442,7 @@ export function MainMenu({
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCreateRoom}
                 disabled={loading}
-                className="w-full py-4 bg-[var(--color-brass)] text-[#180f0a] font-bold rounded-xl transition-colors hover:bg-[#e2a868] disabled:opacity-50"
+                className={buttonVariants({ variant: 'brass', size: 'lg', className: 'w-full rounded-xl' })}
               >
                 {loading ? 'Création...' : 'Créer une salle'}
               </motion.button>
@@ -450,7 +471,7 @@ export function MainMenu({
                   whileTap={{ scale: 0.98 }}
                   onClick={handleLookupRoom}
                   disabled={loading || joinCode.length !== 4}
-                  className="w-full py-3 bg-[var(--color-wood-medium)] text-[var(--color-ivory)] font-bold rounded-xl transition-colors hover:bg-[#4a2e1b] disabled:opacity-50 border border-[#5c3a24]"
+                  className={buttonVariants({ variant: 'wood', size: 'md', className: 'w-full rounded-xl border-[#5c3a24]' })}
                 >
                   {loading ? 'Recherche...' : 'Rejoindre'}
                 </motion.button>
@@ -464,9 +485,13 @@ export function MainMenu({
                 <ArrowLeft className="w-4 h-4" /> Retour
               </button>
 
-              <p className="text-sm text-[var(--color-ivory)]/60">
-                Salle <span className="font-mono font-bold text-[var(--color-ivory)]">{joinCode}</span> trouvée : <strong className="text-[var(--color-ivory)]">{roomInfo?.joinedPlayers ?? 0}/{roomInfo?.maxPlayers ?? 2}</strong> joueurs présents. Choisissez votre couleur :
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-[var(--color-ivory)]/60">
+                  Salle <span className="font-mono font-bold text-[var(--color-ivory)]">{joinCode}</span>
+                </p>
+                <Badge variant="brass">{roomInfo?.joinedPlayers ?? 0}/{roomInfo?.maxPlayers ?? 2}</Badge>
+              </div>
+              <p className="text-sm text-[var(--color-ivory)]/60">Choisissez votre couleur pour rejoindre la prochaine place libre.</p>
 
               <ColorPicker
                 value={joinerColor}
@@ -479,7 +504,7 @@ export function MainMenu({
                 whileTap={{ scale: 0.98 }}
                 onClick={handleConfirmJoin}
                 disabled={loading}
-                className="w-full py-3 bg-[var(--color-brass)] text-[#180f0a] font-bold rounded-xl transition-colors hover:bg-[#e2a868] disabled:opacity-50"
+                className={buttonVariants({ variant: 'brass', size: 'md', className: 'w-full rounded-xl' })}
               >
                 {loading ? 'Connexion...' : 'Rejoindre la partie'}
               </motion.button>

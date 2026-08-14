@@ -22,6 +22,8 @@ import { ChatPanel } from '@/components/game/ChatPanel';
 import { HistoryPanel } from '@/components/game/HistoryPanel';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
 import { WaitingOverlay } from '@/components/game/WaitingOverlay';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 
 interface GameCoreProps {
   initialState: GameState;
@@ -233,11 +235,11 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <button
                   onClick={() => setShowPath((p) => !p)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-                    showPath
-                      ? 'bg-[var(--color-brass)]/20 border-[var(--color-brass)]/60 text-[var(--color-brass)]'
-                      : 'bg-transparent border-[#3b2419] text-[var(--color-ivory)]/55 hover:text-[var(--color-ivory)]/85 hover:border-[#5c3a24]'
-                  }`}
+                  className={buttonVariants({
+                    variant: showPath ? 'outline' : 'ghost',
+                    size: 'sm',
+                    className: 'rounded-lg border-[#3b2419] px-3 py-1.5 text-xs',
+                  })}
                 >
                   <Lightbulb className="w-3.5 h-3.5" />
                   Chemin optimal
@@ -246,7 +248,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
                 {roomId && (
                   <button
                     onClick={handleCopyRoom}
-                    className="flex items-center gap-1.5 rounded-lg border border-[#3b2419] px-3 py-1.5 text-xs font-bold text-[var(--color-ivory)]/70 transition-colors hover:border-[#5c3a24] hover:text-[var(--color-ivory)]"
+                    className={buttonVariants({ variant: 'ghost', size: 'sm', className: 'rounded-lg border border-[#3b2419] px-3 py-1.5 text-xs text-[var(--color-ivory)]/70' })}
                   >
                     <Copy className="h-3.5 w-3.5" />
                     Copier le code
@@ -256,8 +258,10 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
 
               <div className="rounded-2xl border border-[#3b2419] bg-[#180f0a]/70 px-4 py-3 text-sm text-[var(--color-ivory)]/65 shadow-inner">
                 <div className="mb-1 flex items-center gap-2 text-[var(--color-ivory)]">
-                  <Sparkles className="h-4 w-4 text-[var(--color-brass)]" />
-                  <span className="font-semibold">{modeLabel}</span>
+                  <Badge variant="brass" className="px-2 py-0.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>{modeLabel}</span>
+                  </Badge>
                   <span className="text-[var(--color-ivory)]/30">•</span>
                   <span>{settings.confirmWalls ? 'Murs sécurisés' : 'Murs instantanés'}</span>
                   {settings.reducedMotion && (
@@ -309,13 +313,13 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
               <div className="flex gap-2 mb-2">
                 <button
                   onClick={() => setActiveTab('chat')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-t-lg transition-colors ${activeTab === 'chat' ? 'bg-[var(--color-wood-dark)] text-[var(--color-brass)] border border-b-0 border-[#3b2419]' : 'bg-transparent text-[var(--color-ivory)]/50'}`}
+                  className={buttonVariants({ variant: activeTab === 'chat' ? 'outline' : 'ghost', size: 'sm', className: 'flex-1 rounded-t-lg rounded-b-none py-1.5 text-xs' })}
                 >
                   Chat
                 </button>
                 <button
                   onClick={() => setActiveTab('history')}
-                  className={`flex-1 py-1.5 text-xs font-bold rounded-t-lg transition-colors ${activeTab === 'history' ? 'bg-[var(--color-wood-dark)] text-[var(--color-brass)] border border-b-0 border-[#3b2419]' : 'bg-transparent text-[var(--color-ivory)]/50'}`}
+                  className={buttonVariants({ variant: activeTab === 'history' ? 'outline' : 'ghost', size: 'sm', className: 'flex-1 rounded-t-lg rounded-b-none py-1.5 text-xs' })}
                 >
                   Historique
                 </button>
