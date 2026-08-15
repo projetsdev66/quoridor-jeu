@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Frown, RotateCcw, Home, Flame, Star, ArrowRight, Shield, Award } from 'lucide-react';
+import { Trophy, Frown, RotateCcw, Home, Flame, Star, ArrowRight, Shield, Award, Crown, Crosshair, Sparkles } from 'lucide-react';
 import { type Player } from '@/lib/gameLogic';
 import { type Stats } from '@/hooks/useStats';
 
@@ -8,6 +8,8 @@ interface GameOverlayProps {
   winner: Player | null;
   localPlayer: Player;
   winnerName?: string;
+  winnerColor?: string;
+  centerTarget?: boolean;
   passAndPlay?: boolean;
   stats?: Stats;
   onRestart: () => void;
@@ -26,6 +28,8 @@ export function GameOverlay({
   winner,
   localPlayer,
   winnerName,
+  winnerColor = 'var(--color-brass)',
+  centerTarget = false,
   passAndPlay = false,
   stats,
   onRestart,
@@ -39,10 +43,10 @@ export function GameOverlay({
   onRestartSurvival,
   reducedMotion = false,
 }: GameOverlayProps) {
-  if (!winner) return null;
-
-  const isWin = !passAndPlay && winner === localPlayer;
+  const isWin = Boolean(winner) && !passAndPlay && winner === localPlayer;
+  const isWinnerPresentation = passAndPlay || isWin;
   const resolvedWinnerName = winnerName || winner || 'Le gagnant';
+  const WinnerIcon = winner ? ({ p1: Trophy, p2: Crown, p3: Crosshair, p4: Sparkles } satisfies Record<Player, typeof Trophy>)[winner] : Trophy;
 
   const particles = useMemo(() => {
     // Three staggered bursts (center, then left, then right) instead of one flat burst — more "alive".
@@ -51,7 +55,7 @@ export function GameOverlay({
       { originX: '15%', originY: '55%', baseDelay: 0.25, count: 10, spread: 60 },
       { originX: '85%', originY: '55%', baseDelay: 0.42, count: 10, spread: 60 },
     ];
-    const colors = ['#c99a52', '#e2a868', '#f0d090', '#fff8e0'];
+    const colors = [winnerColor, '#e2a868', '#f0d090', '#fff8e0'];
     let idCounter = 0;
     return waves.flatMap((wave) =>
       Array.from({ length: wave.count }, (_, i) => {
@@ -68,7 +72,9 @@ export function GameOverlay({
         };
       }),
     );
-  }, []);
+  }, [winnerColor]);
+
+  if (!winner) return null;
 
   const title = isSurvival
     ? isWin
@@ -85,14 +91,14 @@ export function GameOverlay({
       ? "Préparez-vous, l'IA devient plus forte."
       : `Vous avez survécu à ${roundsSurvived ?? 0} manche${(roundsSurvived ?? 0) > 1 ? 's' : ''}.`
     : passAndPlay
-      ? `${resolvedWinnerName} a atteint son objectif.`
+      ? centerTarget ? `${resolvedWinnerName} a atteint la case centrale.` : `${resolvedWinnerName} a atteint son objectif.`
       : isWin
-        ? 'Vous avez brillamment atteint le côté opposé.'
+        ? centerTarget ? 'Vous avez atteint la case centrale avant les autres.' : 'Vous avez brillamment atteint le côté opposé.'
         : 'Les autres joueurs ont été plus rusés cette fois-ci.';
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      {isWin && !reducedMotion &&
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+      {isWinnerPresentation && !reducedMotion &&
         particles.map((p) => (
           <motion.div
             key={p.id}
@@ -119,7 +125,8 @@ export function GameOverlay({
         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 50, scale: 0.9 }}
         animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
         transition={reducedMotion ? { duration: 0.12 } : { type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative z-10 w-full max-w-sm rounded-2xl border-2 border-[var(--color-brass)] bg-[var(--color-wood-dark)] p-8 text-center shadow-2xl"
+        className="relative z-10 w-full max-w-sm rounded-2xl border-2 bg-[var(--color-wood-dark)] p-8 text-center shadow-2xl"
+        style={{ borderColor: isWinnerPresentation ? winnerColor : 'var(--color-brass)' }}
       >
         <motion.div
           className="mb-4 flex justify-center"
@@ -128,15 +135,16 @@ export function GameOverlay({
           transition={reducedMotion ? { duration: 0.12 } : { type: 'spring', delay: 0.15, damping: 15, stiffness: 250 }}
         >
           {isSurvival ? (
-            <Shield className={`h-20 w-20 ${isWin ? 'text-[var(--color-brass)]' : 'text-[var(--color-ivory)]/40'}`} />
-          ) : passAndPlay || isWin ? (
-            <Trophy className="h-20 w-20 text-[var(--color-brass)]" />
+            <Shield className="h-20 w-20" style={{ color: isWin ? winnerColor : 'rgba(245,240,224,0.4)' }} />
+          ) : isWinnerPresentation ? (
+            <WinnerIcon className="h-20 w-20" style={{ color: winnerColor }} />
           ) : (
             <Frown className="h-20 w-20 text-[var(--color-ivory)]/40" />
           )}
         </motion.div>
 
         <motion.h2
+          id="game-over-title"
           className="mb-1 text-3xl font-serif font-bold text-[var(--color-ivory)]"
           initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
           animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
@@ -175,7 +183,7 @@ export function GameOverlay({
           </motion.div>
         )}
 
-        {!isSurvival && !passAndPlay && stats && (
+        {isWinnerPresentation && !isSurvival && !passAndPlay && stats && (
           <motion.div
             className="mb-6 flex items-center justify-center gap-4 rounded-xl border border-[#3b2419] bg-[#180f0a] px-4 py-3"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
@@ -227,7 +235,7 @@ export function GameOverlay({
           {isSurvival && isWin ? (
             <button
               onClick={onContinueSurvival}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-brass)] py-3 font-bold text-[#180f0a] transition-colors hover:bg-[#e2a868]"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-brass)] py-3 font-bold text-[#180f0a] transition-colors hover:bg-[#e2a868] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ivory)]"
             >
               Manche suivante
               <ArrowRight className="h-5 w-5" />
@@ -235,7 +243,7 @@ export function GameOverlay({
           ) : isSurvival && !isWin ? (
             <button
               onClick={onRestartSurvival}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-brass)] py-3 font-bold text-[#180f0a] transition-colors hover:bg-[#e2a868]"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-brass)] py-3 font-bold text-[#180f0a] transition-colors hover:bg-[#e2a868] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ivory)]"
             >
               <RotateCcw className="h-5 w-5" />
               Retenter la Survie
@@ -243,7 +251,7 @@ export function GameOverlay({
           ) : (
             <button
               onClick={onRestart}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-brass)] py-3 font-bold text-[#180f0a] transition-colors hover:bg-[#e2a868]"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-brass)] py-3 font-bold text-[#180f0a] transition-colors hover:bg-[#e2a868] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ivory)]"
             >
               <RotateCcw className="h-5 w-5" />
               Rejouer
@@ -252,7 +260,7 @@ export function GameOverlay({
 
           <button
             onClick={onHome}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#5c3a24] bg-[var(--color-wood-medium)] py-3 font-bold text-[var(--color-ivory)] transition-colors hover:bg-[#4a2e1b]"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#5c3a24] bg-[var(--color-wood-medium)] py-3 font-bold text-[var(--color-ivory)] transition-colors hover:bg-[#4a2e1b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
           >
             <Home className="h-5 w-5" />
             Menu Principal

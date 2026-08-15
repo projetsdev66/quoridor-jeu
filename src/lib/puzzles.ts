@@ -4,6 +4,7 @@ export interface Puzzle {
   id: string;
   title: string;
   description: string;
+  hint: string;
   maxMoves: number;
   walls: Wall[];
   p1Start: Position;
@@ -14,7 +15,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p1',
     title: 'Premier pas',
-    description: 'Atteignez la ligne adverse en un seul coup.',
+    description: 'La cible est juste devant vous : rejoignez la ligne opposée en un seul mouvement.',
+    hint: 'Avancez d’une case vers le bas, sans poser de mur.',
     maxMoves: 1,
     walls: [],
     p1Start: { r: 7, c: 4 },
@@ -23,7 +25,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p2',
     title: 'Petit détour',
-    description: "Un mur bloque la route directe : contournez-le.",
+    description: 'Un mur ferme le passage central. Trouvez le plus petit détour pour reprendre votre route.',
+    hint: 'Décalez-vous d’abord sur le côté, puis revenez dans l’axe.',
     maxMoves: 3,
     walls: [{ row: 6, col: 4, orientation: 'H' }],
     p1Start: { r: 6, c: 4 },
@@ -32,7 +35,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p3',
     title: 'Sous pression',
-    description: 'Un mur vous coupe la route à mi-chemin.',
+    description: 'Le barrage apparaît au milieu du plateau. Gardez votre direction tout en changeant de colonne.',
+    hint: 'Un détour latéral suffit : observez les deux extrémités du mur.',
     maxMoves: 5,
     walls: [{ row: 4, col: 4, orientation: 'H' }],
     p1Start: { r: 4, c: 4 },
@@ -41,7 +45,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p4',
     title: 'Le long chemin',
-    description: 'Deux murs vous forcent à ruser pour passer.',
+    description: 'Deux barrières décalées vous obligent à choisir le bon côté avant de remonter.',
+    hint: 'Ne revenez pas au centre trop tôt : alignez-vous avec l’ouverture suivante.',
     maxMoves: 5,
     walls: [
       { row: 6, col: 4, orientation: 'H' },
@@ -53,7 +58,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p5',
     title: 'Le grand détour',
-    description: 'Un mur double vous oblige à sortir des sentiers battus. Aucune marge d\'erreur.',
+    description: 'Deux segments ferment l’axe central. Une trajectoire latérale vous permet de rejoindre la cible en six coups.',
+    hint: 'Commencez par vous écarter du barrage, puis remontez dès que la colonne est libre.',
     maxMoves: 6,
     walls: [
       { row: 3, col: 4, orientation: 'H' },
@@ -65,7 +71,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p6',
     title: 'Le zigzag',
-    description: "Deux rangées presque entièrement bloquées. Traversez tout le plateau en largeur, deux fois.",
+    description: 'Deux rangées alternent leurs ouvertures. Traversez le plateau en largeur pour trouver chaque brèche.',
+    hint: 'Les ouvertures changent de côté : préparez le prochain virage avant de franchir la rangée.',
     maxMoves: 22,
     walls: [
       { row: 5, col: 0, orientation: 'H' },
@@ -83,7 +90,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p7',
     title: 'Le triple barrage',
-    description: "Trois rangées à franchir, chacune avec une seule brèche à l'opposé de la précédente.",
+    description: 'Trois barrages successifs vous attendent, avec une brèche différente à chaque niveau.',
+    hint: 'Construisez un zigzag régulier : une rangée à gauche, la suivante à droite.',
     maxMoves: 30,
     walls: [
       { row: 6, col: 0, orientation: 'H' },
@@ -105,7 +113,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p8',
     title: "L'inversion",
-    description: "Comme le triple barrage, mais les brèches sont inversées. Ne vous fiez pas à vos habitudes.",
+    description: 'Le triple barrage revient, mais son rythme est inversé. Votre premier détour donne la clé du parcours.',
+    hint: 'Oubliez le puzzle précédent et repérez chaque ouverture avant d’avancer.',
     maxMoves: 30,
     walls: [
       { row: 6, col: 1, orientation: 'H' },
@@ -127,7 +136,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p9',
     title: 'Le grand serpent',
-    description: "Quatre rangées, quatre traversées complètes du plateau. Un vrai marathon.",
+    description: 'Quatre rangées organisent un long serpent de passages. La patience compte autant que la direction.',
+    hint: 'Restez près de l’ouverture que vous venez de franchir pour préparer le prochain changement de côté.',
     maxMoves: 40,
     walls: [
       { row: 7, col: 0, orientation: 'H' },
@@ -153,7 +163,8 @@ export const PUZZLES: Puzzle[] = [
   {
     id: 'p10',
     title: 'Le défi ultime',
-    description: "Le parcours le plus long et le plus exigeant. Aucune erreur ne pardonne.",
+    description: 'Le défi final combine quatre barrages inversés et une limite stricte de mouvements.',
+    hint: 'Anticipez deux rangées à l’avance : chaque détour prépare le suivant.',
     maxMoves: 38,
     walls: [
       { row: 7, col: 1, orientation: 'H' },

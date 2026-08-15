@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface StatusLineProps {
   isMyTurn: boolean;
   winner: string | null;
+  winnerName?: string;
   opponentName: string;
   passAndPlay?: boolean;
   reducedMotion?: boolean;
 }
 
-export function StatusLine({ isMyTurn, winner, opponentName, passAndPlay = false, reducedMotion = false }: StatusLineProps) {
+export function StatusLine({ isMyTurn, winner, winnerName, opponentName, passAndPlay = false, reducedMotion = false }: StatusLineProps) {
   const transition = reducedMotion ? { duration: 0.1 } : { duration: 0.2 };
   const animationProps = reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 };
   const initialProps = reducedMotion ? { opacity: 0 } : { opacity: 0, y: 6 };
@@ -26,7 +27,7 @@ export function StatusLine({ isMyTurn, winner, opponentName, passAndPlay = false
             transition={transition}
             className="text-[var(--color-brass)]"
           >
-            Partie terminée
+            {winnerName ? `${winnerName} gagne — partie terminée` : 'Partie terminée'}
           </motion.span>
         ) : passAndPlay ? (
           <motion.span

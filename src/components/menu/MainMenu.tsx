@@ -15,7 +15,7 @@ import { buttonVariants } from '@/components/ui/button';
 
 interface MainMenuProps {
   onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz', myColor: string) => void;
-  onStartDuo: (playerName: string, myColor: string, playerCount: PlayerCount) => void;
+  onStartDuo: (playerName: string, myColor: string, playerCount: PlayerCount, gameMode?: 'duo' | 'center') => void;
   onStartSurvival: (playerName: string, myColor: string, startRound?: number) => void;
   onOpenPuzzles: (startIndex?: number) => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
@@ -102,6 +102,8 @@ export function MainMenu({
   const [joinerColor, setJoinerColor] = useState(DEFAULT_P2_COLOR);
   const [roomSize, setRoomSize] = useState<PlayerCount>(2);
   const [localPlayerCount, setLocalPlayerCount] = useState<PlayerCount>(2);
+  const [localFormat, setLocalFormat] = useState<'standard' | 'center'>('standard');
+  const [roomFormat, setRoomFormat] = useState<'standard' | 'center'>('standard');
   const [roomInfo, setRoomInfo] = useState<RoomInfo | null>(null);
   const [playerName, setPlayerName] = useState(() => {
     try { return localStorage.getItem('quoridor_name') ?? ''; } catch { return ''; }
@@ -134,7 +136,8 @@ export function MainMenu({
     setError('');
     try {
       const code = await generateUniqueRoomCode();
-      const state = getFreshState(roomSize);
+      const selectedRoomMode = roomSize === 4 && roomFormat === 'center' ? 'center' : 'classic';
+      const state = getFreshState(roomSize, selectedRoomMode);
       state.roomId = code;
       state.names.p1 = playerName.trim() || 'Hôte';
       state.names.p2 = 'Joueur 2';
@@ -386,7 +389,10 @@ export function MainMenu({
                     <button
                       key={count}
                       type="button"
-                      onClick={() => setLocalPlayerCount(count)}
+                      onClick={() => {
+                        setLocalPlayerCount(count);
+                        if (count !== 4) setLocalFormat('standard');
+                      }}
                       className={buttonVariants({
                         variant: localPlayerCount === count ? 'outline' : 'ghost',
                         size: 'sm',
@@ -400,10 +406,34 @@ export function MainMenu({
                 <p className="mt-2 text-[11px] text-[var(--color-ivory)]/40">Chaque joueur dispose de {localPlayerCount === 2 ? 10 : 5} murs et d’un objectif différent sur le plateau.</p>
               </div>
 
+              {localPlayerCount === 4 && (
+                <div className="rounded-xl border border-[#3b2419] bg-[#180f0a] p-3">
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ivory)]/55">Format de la cible</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLocalFormat('standard')}
+                      className={buttonVariants({ variant: localFormat === 'standard' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                    >
+                      <span className="block font-bold">Bords</span>
+                      <span className="mt-0.5 block text-[10px] opacity-70">Chaque joueur vise son côté.</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocalFormat('center')}
+                      className={buttonVariants({ variant: localFormat === 'center' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                    >
+                      <span className="block font-bold">Centre</span>
+                      <span className="mt-0.5 block text-[10px] opacity-70">Le premier au centre gagne.</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <motion.button
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onStartDuo(playerName.trim(), myColor, localPlayerCount)}
+                onClick={() => onStartDuo(playerName.trim(), myColor, localPlayerCount, localPlayerCount === 4 && localFormat === 'center' ? 'center' : 'duo')}
                 className={buttonVariants({ variant: 'brass', size: 'lg', className: 'w-full rounded-xl' })}
               >
                 Lancer la partie locale
@@ -431,7 +461,10 @@ export function MainMenu({
                     <button
                       key={count}
                       type="button"
-                      onClick={() => setRoomSize(count)}
+                      onClick={() => {
+                        setRoomSize(count);
+                        if (count !== 4) setRoomFormat('standard');
+                      }}
                       className={buttonVariants({
                         variant: roomSize === count ? 'outline' : 'ghost',
                         size: 'sm',
@@ -444,6 +477,31 @@ export function MainMenu({
                 </div>
                 <p className="mt-2 text-[11px] text-[var(--color-ivory)]/40">Chaque joueur reçoit une couleur et un stock de murs adapté au format.</p>
               </div>
+
+              {roomSize === 4 && (
+                <div className="rounded-xl border border-[#3b2419] bg-[#180f0a] p-3">
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wide text-[var(--color-ivory)]/55">Format de la cible</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormat('standard')}
+                      className={buttonVariants({ variant: roomFormat === 'standard' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                    >
+                      <span className="block font-bold">Bords</span>
+                      <span className="mt-0.5 block text-[10px] opacity-70">Objectifs nord, sud, est et ouest.</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoomFormat('center')}
+                      className={buttonVariants({ variant: roomFormat === 'center' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                    >
+                      <span className="block font-bold">Centre</span>
+                      <span className="mt-0.5 block text-[10px] opacity-70">Le premier au centre gagne.</span>
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] text-[var(--color-ivory)]/40">Le format choisi est partagé avec tous les joueurs de la salle.</p>
+                </div>
+              )}
 
               <motion.button
                 whileHover={{ y: -2 }}
@@ -503,7 +561,11 @@ export function MainMenu({
                 </p>
                 <Badge variant="brass">{roomInfo?.joinedPlayers ?? 0}/{roomInfo?.maxPlayers ?? 2}</Badge>
               </div>
-              <p className="text-sm text-[var(--color-ivory)]/60">Choisissez votre couleur pour rejoindre la prochaine place libre.</p>
+              <div className="rounded-xl border border-[var(--color-brass)]/25 bg-[var(--color-brass)]/10 p-3 text-sm text-[var(--color-ivory)]/75">
+                <strong className="text-[var(--color-brass)]">{roomInfo?.mode === 'center' ? 'Format Centre' : 'Format Bords'}</strong>
+                <span className="ml-1">— {roomInfo?.mode === 'center' ? 'le premier au centre gagne.' : 'chaque joueur vise son côté.'}</span>
+              </div>
+              <p className="text-sm text-[var(--color-ivory)]/60">Choisissez votre couleur, puis rejoignez la prochaine place libre.</p>
 
               <ColorPicker
                 value={joinerColor}

@@ -12,7 +12,8 @@ export type MoveAction =
   | { type: 'move'; pos: Position }
   | { type: 'wall'; wall: Wall };
 export type PlayerCount = 2 | 3 | 4;
-export type Goal = { axis: 'row' | 'col'; index: number };
+export type GameMode = 'classic' | 'blitz' | 'survival' | 'duo' | 'puzzle' | 'center';
+export type Goal = { axis: 'row' | 'col'; index: number } | { axis: 'center' };
 
 export interface GameState {
   pos: Record<Player, Position>;
@@ -29,7 +30,7 @@ export interface GameState {
   aiDifficulty: 'easy' | 'medium' | 'hard' | 'expert' | null;
   updatedAt: number;
   roomId?: string;
-  mode?: 'classic' | 'blitz' | 'survival' | 'duo' | 'puzzle';
+  mode?: GameMode;
   maxPlayers: PlayerCount;
 }
 
@@ -37,7 +38,13 @@ export function wallsForPlayerCount(maxPlayers: PlayerCount): number {
   return maxPlayers === 2 ? START_WALLS : MULTI_PLAYER_WALLS;
 }
 
-export function getGoal(player: Player): Goal {
+export function isCenterMode(mode?: GameMode): boolean {
+  return mode === 'center';
+}
+
+export function getGoal(player: Player, mode?: GameMode): Goal {
+  if (isCenterMode(mode)) return { axis: 'center' };
+
   switch (player) {
     case 'p1': return { axis: 'row', index: SIZE - 1 };
     case 'p2': return { axis: 'row', index: 0 };
@@ -46,8 +53,17 @@ export function getGoal(player: Player): Goal {
   }
 }
 
-export function getStartPosition(player: Player): Position {
+export function getStartPosition(player: Player, mode?: GameMode): Position {
   const center = Math.floor(SIZE / 2);
+  if (isCenterMode(mode)) {
+    switch (player) {
+      case 'p1': return { r: 0, c: 0 };
+      case 'p2': return { r: 0, c: SIZE - 1 };
+      case 'p3': return { r: SIZE - 1, c: 0 };
+      case 'p4': return { r: SIZE - 1, c: SIZE - 1 };
+    }
+  }
+
   switch (player) {
     case 'p1': return { r: 0, c: center };
     case 'p2': return { r: SIZE - 1, c: center };
@@ -56,18 +72,23 @@ export function getStartPosition(player: Player): Position {
   }
 }
 
-export function isGoalPosition(player: Player, pos: Position): boolean {
-  const goal = getGoal(player);
+export function isGoalPosition(player: Player, pos: Position, mode?: GameMode): boolean {
+  const goal = getGoal(player, mode);
+  if (goal.axis === 'center') {
+    const center = Math.floor(SIZE / 2);
+    return pos.r === center && pos.c === center;
+  }
   return goal.axis === 'row' ? pos.r === goal.index : pos.c === goal.index;
 }
 
-export function getFreshState(maxPlayers: PlayerCount = 2): GameState {
+export function getFreshState(maxPlayers: PlayerCount = 2, mode: GameMode = 'classic'): GameState {
+  const normalizedMode: GameMode = mode === 'center' && maxPlayers !== 4 ? 'classic' : mode;
   const walls = wallsForPlayerCount(maxPlayers);
   const active = Object.fromEntries(PLAYER_IDS.map((player) => [player, player === 'p1'])) as Record<Player, boolean>;
 
   const names = Object.fromEntries(PLAYER_IDS.map((player, index) => [player, `Joueur ${index + 1}`])) as Record<Player, string>;
   const colors = Object.fromEntries(PLAYER_IDS.map((player, index) => [player, PLAYER_COLORS[index].hex])) as Record<Player, string>;
-  const pos = Object.fromEntries(PLAYER_IDS.map((player) => [player, getStartPosition(player)])) as Record<Player, Position>;
+  const pos = Object.fromEntries(PLAYER_IDS.map((player) => [player, getStartPosition(player, normalizedMode)])) as Record<Player, Position>;
   const wallsLeft = Object.fromEntries(PLAYER_IDS.map((player) => [player, active[player] ? walls : 0])) as Record<Player, number>;
 
   return {
@@ -84,7 +105,7 @@ export function getFreshState(maxPlayers: PlayerCount = 2): GameState {
     lastAction: null,
     aiDifficulty: null,
     updatedAt: Date.now(),
-    mode: 'classic',
+    mode: normalizedMode,
     maxPlayers,
   };
 }
@@ -92,7 +113,12 @@ export function getFreshState(maxPlayers: PlayerCount = 2): GameState {
 export function normalizeGameState(data?: Partial<GameState> | null): GameState {
   const raw = (data ?? {}) as Partial<GameState>;
   const maxPlayers: PlayerCount = raw.maxPlayers === 3 || raw.maxPlayers === 4 ? raw.maxPlayers : 2;
-  const fresh = getFreshState(maxPlayers);
+  const requestedMode = raw.mode;
+  const requestedGameMode: GameMode = requestedMode === 'blitz' || requestedMode === 'survival' || requestedMode === 'duo' || requestedMode === 'puzzle' || requestedMode === 'center'
+    ? requestedMode
+    : 'classic';
+  const mode: GameMode = requestedGameMode === 'center' && maxPlayers !== 4 ? 'classic' : requestedGameMode;
+  const fresh = getFreshState(maxPlayers, mode);
   const players = { ...fresh.players, ...(raw.players ?? {}) } as Record<Player, boolean>;
   for (const player of PLAYER_IDS) players[player] = PLAYER_IDS.indexOf(player) < maxPlayers && Boolean(players[player]);
   players.p1 = true;
@@ -109,6 +135,7 @@ export function normalizeGameState(data?: Partial<GameState> | null): GameState 
     ...fresh,
     ...raw,
     maxPlayers,
+    mode,
     pos,
     wallsLeft,
     players,
@@ -215,9 +242,8 @@ export function getShortestPath(start: Position, goalRow: number, walls: Wall[])
   return path;
 }
 
-export function getShortestPathForPlayer(start: Position, player: Player, walls: Wall[]): Position[] {
-  const goal = getGoal(player);
-  const result = bfs(start, (pos) => isGoalPosition(player, pos), walls);
+export function getShortestPathForPlayer(start: Position, player: Player, walls: Wall[], mode?: GameMode): Position[] {
+  const result = bfs(start, (pos) => isGoalPosition(player, pos, mode), walls);
   if (!result.goalKey) return [];
   const path: Position[] = [];
   let current: string | null = result.goalKey;
@@ -226,7 +252,6 @@ export function getShortestPathForPlayer(start: Position, player: Player, walls:
     path.unshift({ r, c });
     current = result.parent.get(current) ?? null;
   }
-  void goal;
   return path;
 }
 
@@ -234,8 +259,8 @@ export function bfsDistance(start: Position, goalRow: number, walls: Wall[]): nu
   return bfsDistanceInternal(start, (pos) => pos.r === goalRow, walls);
 }
 
-export function bfsDistanceForPlayer(start: Position, player: Player, walls: Wall[]): number {
-  return bfsDistanceInternal(start, (pos) => isGoalPosition(player, pos), walls);
+export function bfsDistanceForPlayer(start: Position, player: Player, walls: Wall[], mode?: GameMode): number {
+  return bfsDistanceInternal(start, (pos) => isGoalPosition(player, pos, mode), walls);
 }
 
 export function canPlaceWall(w: Wall, state: GameState): boolean {
@@ -243,11 +268,11 @@ export function canPlaceWall(w: Wall, state: GameState): boolean {
   if (w.row < 0 || w.row > SIZE - 2 || w.col < 0 || w.col > SIZE - 2) return false;
   if (wallsConflict(w, state.walls)) return false;
   const trial = state.walls.concat([w]);
-  return activePlayers(state).every((player) => hasPathToPlayerGoal(state.pos[player], player, trial));
+  return activePlayers(state).every((player) => hasPathToPlayerGoal(state.pos[player], player, trial, state.mode));
 }
 
-function hasPathToPlayerGoal(pos: Position, player: Player, walls: Wall[]): boolean {
-  return bfsDistanceForPlayer(pos, player, walls) !== Infinity;
+function hasPathToPlayerGoal(pos: Position, player: Player, walls: Wall[], mode?: GameMode): boolean {
+  return bfsDistanceForPlayer(pos, player, walls, mode) !== Infinity;
 }
 
 export function getValidMoves(pos: Position, opponents: Position | Position[], walls: Wall[]): Position[] {
@@ -314,7 +339,7 @@ export function applyMove(state: GameState, player: Player, pos: Position): Game
     lastAction: { type: 'move', pos },
     updatedAt: now,
   };
-  newState.winner = isGoalPosition(player, pos) ? player : null;
+  newState.winner = isGoalPosition(player, pos, state.mode) ? player : null;
   if (!newState.winner) newState.turn = nextPlayer(state, player);
   return newState;
 }

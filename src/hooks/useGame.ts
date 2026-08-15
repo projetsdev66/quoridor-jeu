@@ -14,7 +14,7 @@ import {
 import { transactGameState, subscribeToRoom, type RoomSyncIssue } from '../lib/firebase';
 
 function resetStateFrom(current: GameState, roomId?: string): GameState {
-  const fresh = getFreshState(current.maxPlayers);
+  const fresh = getFreshState(current.maxPlayers, current.mode ?? 'classic');
   fresh.aiDifficulty = current.aiDifficulty;
   fresh.roomId = roomId;
   fresh.names = { ...current.names };

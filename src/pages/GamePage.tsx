@@ -75,8 +75,8 @@ export function GamePage() {
     setView('game');
   };
 
-  const handleStartDuo = (name: string, myColor: string, playerCount: PlayerCount) => {
-    const state = getFreshState(playerCount);
+  const handleStartDuo = (name: string, myColor: string, playerCount: PlayerCount, gameMode: 'duo' | 'center' = 'duo') => {
+    const state = getFreshState(playerCount, gameMode);
     const wallCapacity = wallsForPlayerCount(playerCount);
     const usedColors = new Set<string>();
 
@@ -94,7 +94,7 @@ export function GamePage() {
       usedColors.add(nextColor);
     });
 
-    state.mode = 'duo';
+    state.mode = gameMode;
     setPlayerName(name || 'Joueur 1');
     setSurvivalActive(false);
     setActiveGame({ state, localPlayer: 'p1' });
@@ -171,7 +171,7 @@ export function GamePage() {
   if (view === 'game' && activeGame) {
     return (
       <GameCore
-        key={activeGame.roomId || `local-${activeGame.survivalRound ?? 0}`}
+        key={activeGame.roomId || `local-${activeGame.state.mode ?? 'classic'}-${activeGame.state.maxPlayers}-${activeGame.survivalRound ?? 0}`}
         initialState={activeGame.state}
         roomId={activeGame.roomId}
         localPlayerId={activeGame.localPlayer}

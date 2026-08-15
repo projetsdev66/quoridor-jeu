@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { Crosshair } from 'lucide-react';
 
 interface CellProps {
   r: number;
@@ -6,12 +7,13 @@ interface CellProps {
   isValidMove: boolean;
   isLastMove?: boolean;
   isPathHint?: boolean;
+  isCenterTarget?: boolean;
   reducedMotion?: boolean;
   onClick: () => void;
   delayIndex: number;
 }
 
-export function Cell({ r, c, isValidMove, isLastMove, isPathHint, reducedMotion = false, onClick, delayIndex }: CellProps) {
+export function Cell({ r, c, isValidMove, isLastMove, isPathHint, isCenterTarget = false, reducedMotion = false, onClick, delayIndex }: CellProps) {
   const cellPct = 9.0909;
   const gapPct = 2.2727;
 
@@ -28,6 +30,16 @@ export function Cell({ r, c, isValidMove, isLastMove, isPathHint, reducedMotion 
         height: `${cellPct}%`,
       }}
     >
+      {isCenterTarget && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-sm border-2 border-[#d9a441] bg-[#d9a441]/25 shadow-[inset_0_0_12px_rgba(217,164,65,0.55)]"
+          aria-label="Cible centrale"
+          title="Cible centrale"
+        >
+          <Crosshair className="h-1/2 w-1/2 text-[#ffe5a3] drop-shadow-[0_0_5px_rgba(217,164,65,0.85)]" strokeWidth={2.5} />
+        </div>
+      )}
+
       {isLastMove && (
         <div
           className="pointer-events-none absolute inset-0 rounded-sm"

@@ -1,4 +1,4 @@
-import { Copy, HelpCircle, LogOut, Settings2, Volume2, VolumeX } from 'lucide-react';
+import { Copy, HelpCircle, LogOut, Settings2, Volume2, VolumeX, Crosshair } from 'lucide-react';
 
 interface TopBarProps {
   soundEnabled: boolean;
@@ -9,13 +9,15 @@ interface TopBarProps {
   onCopyRoom?: () => void;
   roomId?: string;
   gameTime?: string;
+  modeLabel?: string;
+  centerTarget?: boolean;
 }
 
 function IconButton({ title, onClick, children, danger }: { title: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
   return (
     <button
       onClick={onClick}
-      className={`h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full transition-colors ${
+      className={`h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)] ${
         danger
           ? 'text-red-400 hover:bg-red-400/10 hover:text-red-300'
           : 'text-[var(--color-ivory)]/70 hover:bg-[var(--color-wood-medium)] hover:text-[var(--color-brass)]'
@@ -28,7 +30,7 @@ function IconButton({ title, onClick, children, danger }: { title: string; onCli
   );
 }
 
-export function TopBar({ soundEnabled, toggleSound, onQuit, onRules, onSettings, onCopyRoom, roomId, gameTime }: TopBarProps) {
+export function TopBar({ soundEnabled, toggleSound, onQuit, onRules, onSettings, onCopyRoom, roomId, gameTime, modeLabel, centerTarget = false }: TopBarProps) {
   return (
     <div className="sticky top-0 z-40 border-b border-[#3b2419] bg-[var(--color-wood-dark)]/92 px-3 py-3 backdrop-blur sm:px-4">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
@@ -41,6 +43,13 @@ export function TopBar({ soundEnabled, toggleSound, onQuit, onRules, onSettings,
             {gameTime && (
               <div className="rounded-full border border-[#3b2419] bg-[#180f0a] px-2.5 py-1 font-mono text-xs text-[var(--color-ivory)]/75 sm:text-sm">
                 {gameTime}
+              </div>
+            )}
+
+            {modeLabel && (
+              <div className="flex items-center gap-1.5 rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--color-brass)]" aria-label={centerTarget ? 'Format Centre : la case centrale est la cible' : `Format ${modeLabel}`}>
+                {centerTarget && <Crosshair className="h-3.5 w-3.5" />}
+                <span>{modeLabel}</span>
               </div>
             )}
 

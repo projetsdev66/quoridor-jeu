@@ -47,6 +47,8 @@ function getModeLabel(mode?: GameState['mode']) {
       return 'Partie locale';
     case 'puzzle':
       return 'Puzzle';
+    case 'center':
+      return 'Centre · 4 joueurs';
     default:
       return 'Classique';
   }
@@ -193,6 +195,8 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         onCopyRoom={roomId ? handleCopyRoom : undefined}
         roomId={roomId}
         gameTime={gameTime}
+        modeLabel={modeLabel}
+        centerTarget={gameState.mode === 'center'}
       />
 
       <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
@@ -217,6 +221,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             isMyTurn={isLocalDuo ? true : isMyTurn}
             winner={gameState.winner}
             opponentName={gameState.names[gameState.turn] ?? gameState.names[displayOppId]}
+            winnerName={gameState.winner ? gameState.names[gameState.winner] : undefined}
             passAndPlay={isLocalDuo}
             reducedMotion={settings.reducedMotion}
           />
@@ -366,6 +371,8 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             winner={gameState.winner}
             localPlayer={localPlayerId}
             winnerName={gameState.names[gameState.winner] ?? gameState.winner}
+            winnerColor={gameState.colors?.[gameState.winner]}
+            centerTarget={gameState.mode === 'center'}
             passAndPlay={isLocalDuo}
             stats={stats}
             onRestart={restartGame}
@@ -398,7 +405,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       />
 
       {roomId && participants.length < gameState.maxPlayers && !gameState.winner && (
-        <WaitingOverlay roomId={roomId} maxPlayers={gameState.maxPlayers} joinedPlayers={participants.length} onQuit={handleExit} />
+        <WaitingOverlay roomId={roomId} maxPlayers={gameState.maxPlayers} joinedPlayers={participants.length} centerTarget={gameState.mode === 'center'} onQuit={handleExit} />
       )}
     </div>
   );

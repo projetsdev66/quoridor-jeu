@@ -1,5 +1,6 @@
 import { PUZZLES } from '@/lib/puzzles';
 import {
+  applyMove,
   bfsDistanceForPlayer,
   getFreshState,
   getGoal,
@@ -23,6 +24,8 @@ for (const [index, puzzle] of PUZZLES.entries()) {
 
   if (!Number.isFinite(distance)) failures.push(`${puzzle.id}: aucun chemin vers l’objectif`);
   if (distance > puzzle.maxMoves) failures.push(`${puzzle.id}: chemin minimal ${distance} > limite ${puzzle.maxMoves}`);
+  const invalidMove = applyMove(puzzleState, 'p1', { r: 8, c: 8 });
+  if (invalidMove !== puzzleState) failures.push(`${puzzle.id}: un coup illégal a modifié l’état`);
   if (puzzleState.pos.p1.r < 0 || puzzleState.pos.p1.r > 8 || puzzleState.pos.p1.c < 0 || puzzleState.pos.p1.c > 8) {
     failures.push(`${puzzle.id}: position p1 hors plateau`);
   }
@@ -45,6 +48,14 @@ const uniqueStarts = new Set(Object.values(starts).map(({ r, c }) => `${r},${c}`
 if (uniqueStarts.size !== 4) failures.push('les quatre positions de départ ne sont pas distinctes');
 if (goals.length !== 4 || !isGoalPosition('p1', { r: 8, c: 0 }) || !isGoalPosition('p2', { r: 0, c: 8 }) || !isGoalPosition('p3', { r: 0, c: 8 }) || !isGoalPosition('p4', { r: 0, c: 0 })) {
   failures.push('objectifs multi-joueurs incohérents');
+}
+
+const centerState = getFreshState(4, 'center');
+if (centerState.mode !== 'center' || centerState.pos.p1.r !== 0 || centerState.pos.p1.c !== 0 || centerState.pos.p4.r !== 8 || centerState.pos.p4.c !== 8) {
+  failures.push('format centre: départs aux coins incohérents');
+}
+if (bfsDistanceForPlayer(centerState.pos.p1, 'p1', [], 'center') !== 8 || !isGoalPosition('p4', { r: 4, c: 4 }, 'center')) {
+  failures.push('format centre: chemin ou cible commune incohérent');
 }
 
 if (failures.length) {

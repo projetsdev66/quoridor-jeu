@@ -10,6 +10,7 @@ import {
   getValidMoves,
   canPlaceWall,
   getShortestPathForPlayer,
+  isCenterMode,
 } from '@/lib/gameLogic';
 import { Cell } from './Cell';
 import { Pawn } from './Pawn';
@@ -62,7 +63,7 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
 
   const pathHintSet = useMemo(() => {
     if (!showPath) return new Set<string>();
-    const path = getShortestPathForPlayer(myPos, localPlayer, gameState.walls);
+    const path = getShortestPathForPlayer(myPos, localPlayer, gameState.walls, gameState.mode);
     return new Set(path.slice(1).map((p) => `${p.r},${p.c}`));
   }, [showPath, myPos, localPlayer, gameState.walls]);
 
@@ -133,6 +134,7 @@ export function Board({ gameState, localPlayer, mode, showPath, confirmWalls = t
           r={r}
           c={c}
           isValidMove={isValid}
+          isCenterTarget={isCenterMode(gameState.mode) && r === Math.floor(SIZE / 2) && c === Math.floor(SIZE / 2)}
           isLastMove={isLastMove}
           isPathHint={isPathHint && !isValid}
           reducedMotion={reducedMotion}

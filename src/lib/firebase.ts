@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, get, update, runTransaction, type DatabaseReference } from 'firebase/database';
-import { type GameState, type Player, PLAYER_IDS, type PlayerCount, getFreshState, normalizeGameState, nextPlayer, wallsForPlayerCount } from './gameLogic';
+import { type GameState, type GameMode, type Player, PLAYER_IDS, type PlayerCount, getFreshState, normalizeGameState, nextPlayer, wallsForPlayerCount } from './gameLogic';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDXUJLgFNufpdZLMWjxRBQNGLOukvLx_4w',
@@ -63,6 +63,7 @@ export interface RoomInfo {
   maxPlayers: PlayerCount;
   joinedPlayers: number;
   availablePlayers: number;
+  mode?: GameMode;
   colors: Record<Player, string>;
   players: Record<Player, boolean>;
 }
@@ -78,6 +79,7 @@ export async function peekRoom(roomId: string): Promise<RoomInfo | null> {
     maxPlayers: state.maxPlayers,
     joinedPlayers,
     availablePlayers: state.maxPlayers - joinedPlayers,
+    mode: state.mode,
     colors: state.colors,
     players: state.players,
   };
