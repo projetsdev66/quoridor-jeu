@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.tsbuildinfo
+
+# Fichiers spécifiques à Replit — ne doivent jamais être commités ici
+.replit
+.replit-artifact
+replit.md
+.npmrc
+.upm
+.config
+.breakpoints
