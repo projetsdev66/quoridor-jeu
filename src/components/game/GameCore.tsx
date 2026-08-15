@@ -205,23 +205,32 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       />
 
       <div className="flex min-h-max flex-none flex-col items-center justify-center gap-3 p-2 pb-24 sm:gap-6 sm:p-4 sm:pb-28 lg:flex-1 lg:flex-row lg:items-start lg:gap-10 lg:pb-8">
-          <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
-          <div className={`grid w-full max-w-[460px] gap-1.5 ${opponentPlayers.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {opponentPlayers.map((player) => (
-              <PlayerCard
-                key={player}
-                player={player}
-                name={gameState.names[player]}
-                color={gameState.colors?.[player] ?? '#3a6ea8'}
-                wallsLeft={gameState.wallsLeft[player]}
-                wallCapacity={gameState.maxPlayers === 2 ? 10 : 5}
-                isActive={gameState.turn === player && !gameIsOver && !gameState.ranking.includes(player)}
-                finishedRank={gameState.ranking.indexOf(player) >= 0 ? gameState.ranking.indexOf(player) + 1 : undefined}
-                isLocal={false}
-                avatarLabel={isLocalDuo ? `J${player.slice(1)}` : player.slice(1)}
-                compact
-              />
-            ))}
+          <div className="flex flex-col items-center gap-4 w-full lg:w-auto">
+          {/* Top strip: every participant, including the local player, in one horizontal row for 3/4 players */}
+          <div className={`grid w-full ${gameState.maxPlayers > 2 ? 'grid-cols-2 gap-1.5' : 'grid-cols-1 gap-1.5'} max-w-[460px]`}>
+            {[boardPlayer, ...opponentPlayers].map((player) => {
+              const finishedRank = gameState.ranking.indexOf(player) >= 0 ? gameState.ranking.indexOf(player) + 1 : undefined;
+              const isLocalPlayer = player === boardPlayer;
+              const isBoardTurnActive = isBoardTurn && !gameIsOver && !finishedRank;
+              return (
+                <PlayerCard
+                  key={player}
+                  player={player}
+                  name={gameState.names[player]}
+                  color={gameState.colors?.[player] ?? '#3a6ea8'}
+                  wallsLeft={gameState.wallsLeft[player]}
+                  wallCapacity={gameState.maxPlayers === 2 ? 10 : 5}
+                  isActive={isLocalPlayer ? isBoardTurnActive : gameState.turn === player && !gameIsOver && !finishedRank}
+                  finishedRank={finishedRank}
+                  isLocal={isLocalPlayer}
+                  turnSecondsLeft={isLocalPlayer && isBoardTurn ? turnSecondsLeft : undefined}
+                  turnIsUrgent={isLocalPlayer && turnIsUrgent}
+                  turnDuration={turnDuration}
+                  avatarLabel={isLocalDuo ? `J${player.slice(1)}` : player.slice(1)}
+                  compact
+                />
+              );
+            })}
           </div>
 
           <StatusLine
@@ -314,7 +323,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
           )}
         </div>
 
-        <div className="w-full max-w-[460px] lg:w-[360px] lg:shrink-0 lg:sticky lg:top-6 flex flex-col gap-4">
+        <div className="hidden w-full lg:block max-w-[460px] lg:w-[360px] lg:shrink-0 lg:sticky lg:top-6 lg:flex flex-col gap-4">
           <PlayerCard
             player={boardPlayer}
             name={gameState.names[boardPlayer]}

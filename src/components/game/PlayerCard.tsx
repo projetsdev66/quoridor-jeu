@@ -40,26 +40,28 @@ export function PlayerCard({
     return (
       <div
         className={`relative flex h-8 min-w-0 items-center gap-1.5 overflow-hidden rounded-md border px-1.5 transition-colors ${
-          isActive
-            ? 'border-[var(--color-brass)]/45 bg-[var(--color-brass)]/10'
-            : 'border-white/5 bg-[var(--color-wood-dark)]/75'
+          finishedRank
+            ? 'border-[var(--color-brass)]/50 bg-[linear-gradient(90deg,rgba(201,154,82,0.18),rgba(201,154,82,0.05))] shadow-[0_0_10px_rgba(201,154,82,0.2)]'
+            : isActive
+              ? 'border-[var(--color-brass)]/45 bg-[var(--color-brass)]/10'
+              : 'border-white/5 bg-[var(--color-wood-dark)]/75'
         }`}
-        title={`${playerLabel} · ${name} · ${wallsLeft} murs`}
+        title={`${playerLabel} · ${name} · ${wallsLeft} murs${finishedRank ? ` · ${finishedRank}${finishedRank === 1 ? 'er' : 'e'} arrivé${finishedRank === 1 ? '' : ''}` : ''}`}
       >
         <span
-          className="h-2 w-2 shrink-0 rounded-full border border-white/20"
+          className={`h-2 w-2 shrink-0 rounded-full border border-white/20 ${finishedRank ? 'animate-pulse' : ''}`}
           style={{ backgroundColor: color }}
           aria-hidden="true"
         />
         <span className="shrink-0 font-mono text-[9px] font-bold text-[var(--color-ivory)]/70">{playerLabel}</span>
-        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-[var(--color-ivory)]">{name}</span>
+        <span className={`min-w-0 flex-1 truncate text-[10px] font-semibold ${finishedRank ? 'text-[var(--color-brass)]' : 'text-[var(--color-ivory)]'}`}>{name}</span>
         {finishedRank ? (
           <span
-            className="shrink-0 rounded-full px-1 text-[8px] font-bold"
-            style={{ backgroundColor: `${color}22`, color }}
+            className="shrink-0 animate-in zoom-in fade-in rounded-full border px-1 text-[8px] font-bold duration-300"
+            style={{ borderColor: `${color}90`, backgroundColor: `${color}30`, color }}
             aria-label={`Arrivé en ${finishedRank}${finishedRank === 1 ? 'ère' : 'e'} position`}
           >
-            #{finishedRank}
+            {finishedRank === 1 ? '★' : `#${finishedRank}`}
           </span>
         ) : isActive ? (
           <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--color-brass)]" aria-label="Tour actif" />
