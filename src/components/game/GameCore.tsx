@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Copy, Lightbulb, Sparkles } from 'lucide-react';
-import { activePlayers, type GameState, type Player } from '@/lib/gameLogic';
+import { activePlayers, finishTarget, isGameOver, type GameState, type Player } from '@/lib/gameLogic';
 import { leaveRoom, type RoomSyncIssue } from '@/lib/firebase';
 import { getBestSurvivalRound, recordSurvivalRound } from '@/lib/survivalRecord';
 import { useGame } from '@/hooks/useGame';
@@ -45,8 +45,6 @@ function getModeLabel(mode?: GameState['mode']) {
       return 'Survie';
     case 'duo':
       return 'Partie locale';
-    case 'puzzle':
-      return 'Puzzle';
     case 'center':
       return 'Centre · 4 joueurs';
     default:
@@ -85,8 +83,9 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   const [showSettings, setShowSettings] = useState(false);
   const [showPath, setShowPath] = useState(() => settings.showPathByDefault);
 
-  const { formatted: gameTime } = useTimer(!gameState.winner, gameState.roomId || 'local');
-  const { playMove, playWall, playError, playVictory } = useSound(settings.soundEnabled);
+  const gameIsOver = isGameOver(gameState);
+  const { formatted: gameTime } = useTimer(!gameIsOver, gameState.roomId || 'local');
+  const { playMove, playWall, playError, playArrival } = useSound(settings.soundEnabled);
 
   const { stats, recordWin, recordLoss } = useStats();
 
@@ -94,13 +93,14 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   const boardPlayer: Player = roomId ? localPlayerId : isLocalDuo ? gameState.turn : localPlayerId;
 
   const hasRecordedRef = useRef(false);
+  const lastRankingRef = useRef<Player[]>(gameState.ranking);
   const lastHistoryCountRef = useRef(gameState.history.length);
   const [survivalOutcome, setSurvivalOutcome] = useState<{ roundsSurvived: number; best: number; isNewRecord: boolean } | null>(null);
 
   useEffect(() => {
-    if (gameState.winner && !hasRecordedRef.current) {
+    if (gameIsOver && !hasRecordedRef.current) {
       hasRecordedRef.current = true;
-      const won = gameState.winner === localPlayerId;
+      const won = gameState.ranking.includes(localPlayerId);
 
       // Duo local doesn't have a single "you" — skip personal win/loss stats for it.
       if (!isLocalDuo) {
@@ -118,14 +118,21 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       }
     }
 
-    if (!gameState.winner) {
+    if (!gameIsOver) {
       hasRecordedRef.current = false;
       setSurvivalOutcome(null);
     }
-  }, [gameState.winner, gameState.mode, localPlayerId, isLocalDuo, onSurvivalResult, recordLoss, recordWin, survivalRound]);
+  }, [gameIsOver, gameState.ranking, gameState.mode, localPlayerId, isLocalDuo, onSurvivalResult, recordLoss, recordWin, survivalRound]);
 
-  const isMyTurn = gameState.turn === localPlayerId && !gameState.winner;
-  const isBoardTurn = gameState.turn === boardPlayer && !gameState.winner;
+  useEffect(() => {
+    const previousRanking = lastRankingRef.current;
+    const newFinishers = gameState.ranking.filter((player) => !previousRanking.includes(player));
+    newFinishers.forEach((player) => playArrival(gameState.ranking.indexOf(player) + 1));
+    lastRankingRef.current = gameState.ranking;
+  }, [gameState.ranking, playArrival]);
+
+  const isMyTurn = gameState.turn === localPlayerId && !gameIsOver && !gameState.ranking.includes(localPlayerId);
+  const isBoardTurn = gameState.turn === boardPlayer && !gameIsOver && !gameState.ranking.includes(boardPlayer);
 
   const turnDuration = gameState.mode === 'blitz' ? BLITZ_TURN_DURATION : TURN_DURATION;
   const { secondsLeft: turnSecondsLeft, isUrgent: turnIsUrgent } = useTurnTimer(
@@ -155,12 +162,6 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
     lastHistoryCountRef.current = currentCount;
   }, [gameState.history, playMove, playWall]);
 
-  useEffect(() => {
-    if (gameState.winner) {
-      playVictory();
-    }
-  }, [gameState.winner, playVictory]);
-
   const participants = activePlayers(gameState);
   const opponentPlayers = participants.filter((player) => player !== boardPlayer);
   const displayOppId = opponentPlayers[0] ?? boardPlayer;
@@ -184,8 +185,10 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
     }
   };
 
+  const overlayWinner = gameState.winner;
+
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[var(--color-wood-dark)]">
+    <div className="relative min-h-[100dvh] overflow-x-clip flex flex-col bg-[var(--color-wood-dark)]">
       <TopBar
         soundEnabled={settings.soundEnabled}
         toggleSound={() => updateSetting('soundEnabled', !settings.soundEnabled)}
@@ -210,7 +213,8 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
                 color={gameState.colors?.[player] ?? '#3a6ea8'}
                 wallsLeft={gameState.wallsLeft[player]}
                 wallCapacity={gameState.maxPlayers === 2 ? 10 : 5}
-                isActive={gameState.turn === player && !gameState.winner}
+                isActive={gameState.turn === player && !gameIsOver && !gameState.ranking.includes(player)}
+                finishedRank={gameState.ranking.indexOf(player) >= 0 ? gameState.ranking.indexOf(player) + 1 : undefined}
                 isLocal={false}
                 avatarLabel={isLocalDuo ? `J${player.slice(1)}` : player.slice(1)}
               />
@@ -222,6 +226,10 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             winner={gameState.winner}
             opponentName={gameState.names[gameState.turn] ?? gameState.names[displayOppId]}
             winnerName={gameState.winner ? gameState.names[gameState.winner] : undefined}
+            lastFinisherName={gameState.ranking.length ? gameState.names[gameState.ranking[gameState.ranking.length - 1]] : undefined}
+            finishedCount={gameState.ranking.length}
+            finishTarget={finishTarget(gameState.maxPlayers)}
+            gameOver={gameIsOver}
             passAndPlay={isLocalDuo}
             reducedMotion={settings.reducedMotion}
           />
@@ -239,7 +247,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
           />
 
           {/* Mobile: commands pinned to the bottom of the screen — no scrolling needed to reach them. */}
-          {!gameState.winner && (
+          {!gameIsOver && (
             <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#3b2419] bg-[var(--color-wood-dark)]/95 p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
               <div className="mx-auto max-w-[460px]">
                 <ModeControls
@@ -252,7 +260,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
             </div>
           )}
 
-          {!gameState.winner && (
+          {!gameIsOver && (
             <div className="flex w-full max-w-[460px] flex-col gap-2">
               <div className="flex flex-wrap items-center justify-center gap-2">
                 <button
@@ -319,7 +327,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
           />
 
           {/* Desktop: controls live in the sidebar. Mobile: they're pinned to the bottom bar below instead. */}
-          {!gameState.winner && (
+          {!gameIsOver && (
             <div className="hidden lg:block">
               <ModeControls
                 mode={mode}
@@ -365,13 +373,17 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       </div>
 
       <AnimatePresence>
-        {gameState.winner && (
+        {gameIsOver && overlayWinner && (
           <GameOverlay
             key="game-overlay"
-            winner={gameState.winner}
+            winner={overlayWinner}
             localPlayer={localPlayerId}
-            winnerName={gameState.names[gameState.winner] ?? gameState.winner}
-            winnerColor={gameState.colors?.[gameState.winner]}
+            winnerName={gameState.names[overlayWinner] ?? overlayWinner}
+            winnerColor={gameState.colors?.[overlayWinner]}
+            ranking={gameState.ranking}
+            participants={participants}
+            names={gameState.names}
+            colors={gameState.colors}
             centerTarget={gameState.mode === 'center'}
             passAndPlay={isLocalDuo}
             stats={stats}
@@ -404,7 +416,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         }}
       />
 
-      {roomId && participants.length < gameState.maxPlayers && !gameState.winner && (
+      {roomId && participants.length < gameState.maxPlayers && !gameIsOver && (
         <WaitingOverlay
           roomId={roomId}
           maxPlayers={gameState.maxPlayers}

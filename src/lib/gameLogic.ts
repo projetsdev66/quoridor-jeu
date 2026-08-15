@@ -12,7 +12,7 @@ export type MoveAction =
   | { type: 'move'; pos: Position }
   | { type: 'wall'; wall: Wall };
 export type PlayerCount = 2 | 3 | 4;
-export type GameMode = 'classic' | 'blitz' | 'survival' | 'duo' | 'puzzle' | 'center';
+export type GameMode = 'classic' | 'blitz' | 'survival' | 'duo' | 'center';
 export type Goal = { axis: 'row' | 'col'; index: number } | { axis: 'center' };
 
 export interface GameState {
@@ -21,6 +21,8 @@ export interface GameState {
   walls: Wall[];
   turn: Player;
   winner: Player | null;
+  /** Ordered finishers. The first finisher is kept in winner for backward compatibility. */
+  ranking: Player[];
   players: Record<Player, boolean>;
   names: Record<Player, string>;
   colors: Record<Player, string>;
@@ -97,6 +99,7 @@ export function getFreshState(maxPlayers: PlayerCount = 2, mode: GameMode = 'cla
     walls: [],
     turn: 'p1',
     winner: null,
+    ranking: [],
     players: active,
     names: { ...names, p1: 'Joueur 1', p2: 'Joueur 2' },
     colors: { ...colors, p1: DEFAULT_P1_COLOR, p2: DEFAULT_P2_COLOR },
@@ -114,7 +117,7 @@ export function normalizeGameState(data?: Partial<GameState> | null): GameState 
   const raw = (data ?? {}) as Partial<GameState>;
   const maxPlayers: PlayerCount = raw.maxPlayers === 3 || raw.maxPlayers === 4 ? raw.maxPlayers : 2;
   const requestedMode = raw.mode;
-  const requestedGameMode: GameMode = requestedMode === 'blitz' || requestedMode === 'survival' || requestedMode === 'duo' || requestedMode === 'puzzle' || requestedMode === 'center'
+  const requestedGameMode: GameMode = requestedMode === 'blitz' || requestedMode === 'survival' || requestedMode === 'duo' || requestedMode === 'center'
     ? requestedMode
     : 'classic';
   const mode: GameMode = requestedGameMode === 'center' && maxPlayers !== 4 ? 'classic' : requestedGameMode;
@@ -130,6 +133,11 @@ export function normalizeGameState(data?: Partial<GameState> | null): GameState 
   const pos = { ...fresh.pos, ...(raw.pos ?? {}) } as Record<Player, Position>;
   const names = { ...fresh.names, ...(raw.names ?? {}) } as Record<Player, string>;
   const colors = { ...fresh.colors, ...(raw.colors ?? {}) } as Record<Player, string>;
+  const legacyWinner = players[raw.winner as Player] ? raw.winner as Player : null;
+  const ranking = Array.from(new Set(
+    (Array.isArray(raw.ranking) ? raw.ranking : legacyWinner ? [legacyWinner] : [])
+      .filter((player): player is Player => players[player]),
+  ));
 
   return {
     ...fresh,
@@ -141,17 +149,26 @@ export function normalizeGameState(data?: Partial<GameState> | null): GameState 
     players,
     names,
     colors,
+    ranking,
     walls: Array.isArray(raw.walls) ? raw.walls : [],
     history: Array.isArray(raw.history) ? raw.history : [],
     chat: Array.isArray(raw.chat) ? raw.chat : [],
-    turn: players[raw.turn as Player] ? raw.turn as Player : 'p1',
-    winner: players[raw.winner as Player] ? raw.winner as Player : null,
+    turn: players[raw.turn as Player] && !ranking.includes(raw.turn as Player) ? raw.turn as Player : nextPlayer({ players, maxPlayers, ranking }, ranking[ranking.length - 1] ?? 'p1'),
+    winner: ranking[0] ?? null,
     updatedAt: Number(raw.updatedAt ?? Date.now()),
   };
 }
 
 export function activePlayers(state: Pick<GameState, 'players' | 'maxPlayers'>): Player[] {
   return PLAYER_IDS.slice(0, state.maxPlayers).filter((player) => state.players[player]);
+}
+
+export function finishTarget(maxPlayers: PlayerCount): number {
+  return maxPlayers === 2 ? 1 : maxPlayers - 1;
+}
+
+export function isGameOver(state: Pick<GameState, 'maxPlayers' | 'ranking'>): boolean {
+  return state.ranking.length >= finishTarget(state.maxPlayers);
 }
 
 export function inBounds(r: number, c: number) {
@@ -264,7 +281,7 @@ export function bfsDistanceForPlayer(start: Position, player: Player, walls: Wal
 }
 
 export function canPlaceWall(w: Wall, state: GameState): boolean {
-  if (state.winner || state.wallsLeft[state.turn] <= 0) return false;
+  if (isGameOver(state) || state.ranking.includes(state.turn) || state.wallsLeft[state.turn] <= 0) return false;
   if (w.row < 0 || w.row > SIZE - 2 || w.col < 0 || w.col > SIZE - 2) return false;
   if (wallsConflict(w, state.walls)) return false;
   const trial = state.walls.concat([w]);
@@ -311,14 +328,16 @@ export function getValidMoves(pos: Position, opponents: Position | Position[], w
   return moves;
 }
 
-export function nextPlayer(state: Pick<GameState, 'players' | 'maxPlayers'>, current: Player): Player {
-  const players = activePlayers(state);
+export function nextPlayer(state: Pick<GameState, 'players' | 'maxPlayers'> & { ranking?: Player[] }, current: Player): Player {
+  const ranked = state.ranking ?? [];
+  const players = activePlayers(state).filter((player) => !ranked.includes(player));
+  if (players.length === 0) return 'p1';
   const currentIndex = players.indexOf(current);
   for (let offset = 1; offset <= players.length; offset++) {
     const candidate = players[(currentIndex + offset + players.length) % players.length];
     if (candidate) return candidate;
   }
-  return 'p1';
+  return players[0] ?? 'p1';
 }
 
 function samePosition(a: Position, b: Position): boolean {
@@ -326,7 +345,7 @@ function samePosition(a: Position, b: Position): boolean {
 }
 
 export function applyMove(state: GameState, player: Player, pos: Position): GameState {
-  if (state.winner || state.turn !== player || !state.players[player]) return state;
+  if (isGameOver(state) || state.turn !== player || !state.players[player] || state.ranking.includes(player)) return state;
   const opponents = activePlayers(state).filter((candidate) => candidate !== player).map((candidate) => state.pos[candidate]);
   const valid = getValidMoves(state.pos[player], opponents, state.walls).some((candidate) => samePosition(candidate, pos));
   if (!valid) return state;
@@ -339,13 +358,17 @@ export function applyMove(state: GameState, player: Player, pos: Position): Game
     lastAction: { type: 'move', pos },
     updatedAt: now,
   };
-  newState.winner = isGoalPosition(player, pos, state.mode) ? player : null;
-  if (!newState.winner) newState.turn = nextPlayer(state, player);
+  const ranking = isGoalPosition(player, pos, state.mode) && !state.ranking.includes(player)
+    ? [...state.ranking, player]
+    : [...state.ranking];
+  newState.ranking = ranking;
+  newState.winner = ranking[0] ?? null;
+  if (!isGameOver(newState)) newState.turn = nextPlayer(newState, player);
   return newState;
 }
 
 export function applyWall(state: GameState, player: Player, wall: Wall): GameState {
-  if (state.winner || state.turn !== player || !state.players[player] || state.wallsLeft[player] <= 0 || !canPlaceWall(wall, state)) return state;
+  if (isGameOver(state) || state.turn !== player || !state.players[player] || state.ranking.includes(player) || state.wallsLeft[player] <= 0 || !canPlaceWall(wall, state)) return state;
   const now = Date.now();
   const ownedWall: Wall = { ...wall, owner: player };
   return {

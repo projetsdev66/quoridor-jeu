@@ -13,9 +13,10 @@ interface PlayerCardProps {
   turnDuration?: number;
   avatarLabel?: string;
   wallCapacity?: number;
+  finishedRank?: number;
 }
 
-export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel, wallCapacity = 10 }: PlayerCardProps) {
+export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel, wallCapacity = 10, finishedRank }: PlayerCardProps) {
   const showTimer = isActive && isLocal && turnSecondsLeft !== undefined;
   const progress = turnSecondsLeft !== undefined ? Math.max(0, Math.min(1, turnSecondsLeft / turnDuration)) : 1;
 
@@ -52,7 +53,12 @@ export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, 
                   {turnSecondsLeft}s
                 </span>
               )}
-              {isActive && (
+              {finishedRank && (
+                <span className="rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10 px-2 py-0.5 text-xs font-bold text-[var(--color-brass)]">
+                  #{finishedRank}
+                </span>
+              )}
+              {isActive && !finishedRank && (
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-brass)] opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--color-brass)]" />
@@ -62,6 +68,7 @@ export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, 
           </div>
 
           <div className="mt-2 flex items-center gap-1">
+            {finishedRank && <span className="mr-1 text-xs font-semibold text-[var(--color-brass)]">Arrivé</span>}
             {Array.from({ length: wallCapacity }).map((_, i) => (
               <div
                 key={i}

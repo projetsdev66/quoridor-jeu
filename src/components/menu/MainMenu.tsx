@@ -1,11 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, Puzzle as PuzzleIcon, HelpCircle, Info } from 'lucide-react';
+import { User, Users, ChevronRight, ArrowLeft, Flame, Trophy, Zap, Shield, HelpCircle, Info } from 'lucide-react';
 import { type GameState, type Player, type PlayerCount, PLAYER_IDS, getFreshState } from '@/lib/gameLogic';
 import { generateUniqueRoomCode, createRoom, joinRoom, peekRoom, type RoomInfo } from '@/lib/firebase';
 import { useStats } from '@/hooks/useStats';
 import { getBestSurvivalRound } from '@/lib/survivalRecord';
-import { getPuzzleProgress } from '@/lib/puzzleProgress';
 import { PLAYER_COLORS, DEFAULT_P1_COLOR, DEFAULT_P2_COLOR } from '@/lib/playerColors';
 import type { Difficulty } from '@/lib/aiEngine';
 import { RulesOverlay } from '@/components/game/RulesOverlay';
@@ -17,7 +16,6 @@ interface MainMenuProps {
   onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz', myColor: string) => void;
   onStartDuo: (playerName: string, myColor: string, playerCount: PlayerCount, gameMode?: 'duo' | 'center') => void;
   onStartSurvival: (playerName: string, myColor: string, startRound?: number) => void;
-  onOpenPuzzles: (startIndex?: number) => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
   onRoomJoined: (roomId: string, state: GameState, playerId: Player) => void;
 }
@@ -88,7 +86,6 @@ export function MainMenu({
   onStartSolo,
   onStartDuo,
   onStartSurvival,
-  onOpenPuzzles,
   onRoomCreated,
   onRoomJoined,
 }: MainMenuProps) {
@@ -114,7 +111,6 @@ export function MainMenu({
 
   const { stats } = useStats();
   const bestRound = getBestSurvivalRound();
-  const puzzleProgress = getPuzzleProgress();
 
   const saveName = (name: string) => {
     setPlayerName(name);
@@ -325,12 +321,6 @@ export function MainMenu({
                   subtitle="2 à 4 joueurs · même appareil"
                   onClick={() => setView('local')}
                 />
-                <GridButton
-                  icon={<PuzzleIcon className="text-[var(--color-brass)] w-4 h-4" />}
-                  label="Puzzles"
-                  subtitle={puzzleProgress > 0 ? `Puzzle ${puzzleProgress + 1}` : "Défis"}
-                  onClick={() => onOpenPuzzles(puzzleProgress > 0 ? puzzleProgress : undefined)}
-                />
               </div>
 
               <MenuButton
@@ -413,7 +403,7 @@ export function MainMenu({
                     <button
                       type="button"
                       onClick={() => setLocalFormat('standard')}
-                      className={buttonVariants({ variant: localFormat === 'standard' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                      className={buttonVariants({ variant: localFormat === 'standard' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto min-w-0 flex-col items-start justify-start whitespace-normal rounded-lg border-[#5c3a24] px-2 py-2 text-left leading-tight' })}
                     >
                       <span className="block font-bold">Bords</span>
                       <span className="mt-0.5 block text-[10px] opacity-70">Chaque joueur vise son côté.</span>
@@ -421,7 +411,7 @@ export function MainMenu({
                     <button
                       type="button"
                       onClick={() => setLocalFormat('center')}
-                      className={buttonVariants({ variant: localFormat === 'center' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                      className={buttonVariants({ variant: localFormat === 'center' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto min-w-0 flex-col items-start justify-start whitespace-normal rounded-lg border-[#5c3a24] px-2 py-2 text-left leading-tight' })}
                     >
                       <span className="block font-bold">Centre</span>
                       <span className="mt-0.5 block text-[10px] opacity-70">Le premier au centre gagne.</span>
@@ -485,7 +475,7 @@ export function MainMenu({
                     <button
                       type="button"
                       onClick={() => setRoomFormat('standard')}
-                      className={buttonVariants({ variant: roomFormat === 'standard' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                      className={buttonVariants({ variant: roomFormat === 'standard' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto min-w-0 flex-col items-start justify-start whitespace-normal rounded-lg border-[#5c3a24] px-2 py-2 text-left leading-tight' })}
                     >
                       <span className="block font-bold">Bords</span>
                       <span className="mt-0.5 block text-[10px] opacity-70">Objectifs nord, sud, est et ouest.</span>
@@ -493,7 +483,7 @@ export function MainMenu({
                     <button
                       type="button"
                       onClick={() => setRoomFormat('center')}
-                      className={buttonVariants({ variant: roomFormat === 'center' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto rounded-lg border-[#5c3a24] px-2 py-2 text-left' })}
+                      className={buttonVariants({ variant: roomFormat === 'center' ? 'outline' : 'ghost', size: 'sm', className: 'h-auto min-w-0 flex-col items-start justify-start whitespace-normal rounded-lg border-[#5c3a24] px-2 py-2 text-left leading-tight' })}
                     >
                       <span className="block font-bold">Centre</span>
                       <span className="mt-0.5 block text-[10px] opacity-70">Le premier au centre gagne.</span>

@@ -5,9 +5,8 @@ import { DEFAULT_P1_COLOR, DEFAULT_P2_COLOR, PLAYER_COLORS } from '@/lib/playerC
 import { MainMenu } from '@/components/menu/MainMenu';
 import { OnboardingScreen } from '@/components/menu/OnboardingScreen';
 import { GameCore } from '@/components/game/GameCore';
-import { PuzzleScreen } from '@/components/puzzle/PuzzleScreen';
 
-type View = 'onboarding' | 'menu' | 'game' | 'puzzles';
+type View = 'onboarding' | 'menu' | 'game';
 
 function hasOnboarded(): boolean {
   try {
@@ -46,7 +45,6 @@ export function GamePage() {
   } | null>(null);
   const [playerName, setPlayerName] = useState('Vous');
   const [survivalActive, setSurvivalActive] = useState(false);
-  const [puzzleStartIndex, setPuzzleStartIndex] = useState(0);
 
   const opponentColorFor = (myColor: string) => (myColor === DEFAULT_P1_COLOR ? DEFAULT_P2_COLOR : DEFAULT_P1_COLOR);
 
@@ -191,10 +189,6 @@ export function GamePage() {
     );
   }
 
-  if (view === 'puzzles') {
-    return <PuzzleScreen onHome={goHome} startIndex={puzzleStartIndex} />;
-  }
-
   return (
     <div className="min-h-[100dvh] flex items-center justify-center relative overflow-hidden bg-cover bg-center">
       {/* Decorative background board elements */}
@@ -210,10 +204,6 @@ export function GamePage() {
         onStartSolo={handleStartSolo}
         onStartDuo={handleStartDuo}
         onStartSurvival={handleStartSurvival}
-        onOpenPuzzles={(startIndex) => {
-          setPuzzleStartIndex(startIndex ?? 0);
-          setView('puzzles');
-        }}
         onRoomCreated={handleRoomCreated}
         onRoomJoined={handleRoomJoined}
       />

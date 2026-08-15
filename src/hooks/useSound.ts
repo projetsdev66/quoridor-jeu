@@ -108,7 +108,38 @@ export function useSound(enabled: boolean = true) {
     [playTone],
   );
 
-  // Ascending arpeggio: C5-E5-G5-C6
+  // Distinct arrival jingle. Every finisher gets feedback, not only the final game winner.
+  const playArrival = useCallback(
+    (rank: number = 1) => {
+      if (!enabled || !audioCtxRef.current) return;
+      if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+      const ctx = audioCtxRef.current;
+      const melodies: Record<number, number[]> = {
+        1: [523, 659, 784, 1047],
+        2: [440, 554, 659, 880],
+        3: [392, 494, 587, 784],
+        4: [330, 415, 494, 659],
+      };
+      const notes = melodies[Math.min(rank, 4)] ?? melodies[4];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const t = ctx.currentTime + i * 0.11;
+        osc.type = rank === 1 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.16, t + 0.035);
+        gain.gain.linearRampToValueAtTime(0, t + 0.28);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.3);
+      });
+    },
+    [enabled],
+  );
+
+  // Ascending arpeggio kept for two-player end-of-game compatibility.
   const playVictory = useCallback(
     () => {
       if (!enabled || !audioCtxRef.current) return;
@@ -133,5 +164,5 @@ export function useSound(enabled: boolean = true) {
     [enabled],
   );
 
-  return { playMove, playWall, playError, playChat, playVictory };
+  return { playMove, playWall, playError, playChat, playArrival, playVictory };
 }

@@ -115,6 +115,8 @@
   html {
     background: var(--background);
     overflow-x: hidden;
+    overscroll-behavior-x: none;
+    scrollbar-gutter: stable;
   }
   * {
     @apply border-border;
@@ -127,11 +129,18 @@
       radial-gradient(circle at center, var(--wood-medium) 0%, var(--background) 100%);
     min-height: 100dvh;
     overflow-x: hidden;
+    overscroll-behavior: none;
+    scrollbar-gutter: stable;
   }
   button,
   [role='button'] {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif font-bold tracking-tight;

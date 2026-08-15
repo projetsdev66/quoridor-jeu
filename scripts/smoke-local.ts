@@ -4,6 +4,8 @@ import {
   applyWall,
   getFreshState,
   getGoal,
+  finishTarget,
+  isGameOver,
   getShortestPathForPlayer,
   isGoalPosition,
   SIZE,
@@ -69,9 +71,27 @@ for (const [player, { before, target }] of Object.entries(edgeWins) as [Player, 
   winState.pos = { ...winState.pos, [player]: before };
   winState.turn = player;
   const result = applyMove(winState, player, target);
-  assert(result.winner === player, `${player} doit gagner en atteignant son bord`);
-  assert(result.turn === player, `Le tour ne doit pas tourner après la victoire de ${player}`);
+  assert(result.winner === player, `${player} doit être le premier gagnant en atteignant son bord`);
+  assert(result.ranking.length === 1, `${player} doit être ajouté au classement`);
 }
+
+assert(finishTarget(3) === 2 && finishTarget(4) === 3, 'Les formats 3/4 joueurs doivent attendre respectivement 2/3 arrivées');
+const multiFinish3 = activate(getFreshState(3), 3);
+multiFinish3.pos = { ...multiFinish3.pos, p1: { r: 7, c: 4 }, p2: { r: 1, c: 4 }, p3: { r: 4, c: 1 } };
+const first3 = applyMove({ ...multiFinish3, turn: 'p1' }, 'p1', { r: 8, c: 4 });
+assert(first3.ranking.length === 1 && !isGameOver(first3), 'À trois joueurs, la partie doit continuer après la première arrivée');
+const second3 = applyMove(first3, 'p2', { r: 0, c: 4 });
+assert(second3.ranking.join(',') === 'p1,p2' && isGameOver(second3), 'À trois joueurs, la partie doit finir après deux arrivées');
+assert(second3.turn === 'p2', 'Le dernier joueur arrivé conserve le tour dans l’état final');
+
+const multiFinish4 = activate(getFreshState(4), 4);
+multiFinish4.pos = { ...multiFinish4.pos, p1: { r: 7, c: 4 }, p2: { r: 1, c: 4 }, p3: { r: 4, c: 7 }, p4: { r: 8, c: 8 } };
+const first4 = applyMove({ ...multiFinish4, turn: 'p1' }, 'p1', { r: 8, c: 4 });
+const second4 = applyMove(first4, 'p2', { r: 0, c: 4 });
+assert(second4.ranking.length === 2 && !isGameOver(second4), 'À quatre joueurs, la partie doit continuer après deux arrivées');
+const third4 = applyMove(second4, 'p3', { r: 4, c: 8 });
+assert(third4.ranking.join(',') === 'p1,p2,p3' && isGameOver(third4), 'À quatre joueurs, la partie doit finir après trois arrivées');
+assert(third4.turn === 'p3', 'Le dernier joueur arrivé conserve le tour dans l’état final');
 
 const centerState = activate(getFreshState(4, 'center'), 4);
 assert(centerState.mode === 'center', 'Le format centre doit être conservé dans l’état');

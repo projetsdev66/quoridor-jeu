@@ -6,6 +6,10 @@ import { type Stats } from '@/hooks/useStats';
 
 interface GameOverlayProps {
   winner: Player | null;
+  ranking?: Player[];
+  participants?: Player[];
+  names?: Partial<Record<Player, string>>;
+  colors?: Partial<Record<Player, string>>;
   localPlayer: Player;
   winnerName?: string;
   winnerColor?: string;
@@ -26,6 +30,10 @@ interface GameOverlayProps {
 
 export function GameOverlay({
   winner,
+  ranking = winner ? [winner] : [],
+  participants = [],
+  names = {},
+  colors = {},
   localPlayer,
   winnerName,
   winnerColor = 'var(--color-brass)',
@@ -43,8 +51,11 @@ export function GameOverlay({
   onRestartSurvival,
   reducedMotion = false,
 }: GameOverlayProps) {
-  const isWin = Boolean(winner) && !passAndPlay && winner === localPlayer;
+  const isWin = Boolean(winner) && !passAndPlay && ranking.includes(localPlayer);
   const isWinnerPresentation = passAndPlay || isWin;
+  const isMultiFinish = ranking.length > 1;
+  const orderedPlayers = [...ranking, ...participants.filter((player) => !ranking.includes(player))];
+  const resolvedNames = orderedPlayers.map((player) => ({ player, name: names[player] || player, color: colors[player] || winnerColor, ranked: ranking.includes(player) }));
   const resolvedWinnerName = winnerName || winner || 'Le gagnant';
   const WinnerIcon = winner ? ({ p1: Trophy, p2: Crown, p3: Crosshair, p4: Sparkles } satisfies Record<Player, typeof Trophy>)[winner] : Trophy;
 
@@ -80,21 +91,25 @@ export function GameOverlay({
     ? isWin
       ? `Manche ${survivalRoundNumber ?? ''} remportée !`
       : 'Série terminée'
-    : passAndPlay
-      ? `${resolvedWinnerName} gagne !`
-      : isWin
-        ? 'Victoire !'
-        : 'Défaite';
+    : isMultiFinish
+      ? 'Classement final'
+      : passAndPlay
+        ? `${resolvedWinnerName} gagne !`
+        : isWin
+          ? 'Victoire !'
+          : 'Défaite';
 
   const subtitle = isSurvival
     ? isWin
-      ? "Préparez-vous, l'IA devient plus forte."
+      ? "Préparez-vous, l’IA devient plus forte."
       : `Vous avez survécu à ${roundsSurvived ?? 0} manche${(roundsSurvived ?? 0) > 1 ? 's' : ''}.`
-    : passAndPlay
-      ? centerTarget ? `${resolvedWinnerName} a atteint la case centrale.` : `${resolvedWinnerName} a atteint son objectif.`
-      : isWin
-        ? centerTarget ? 'Vous avez atteint la case centrale avant les autres.' : 'Vous avez brillamment atteint le côté opposé.'
-        : 'Les autres joueurs ont été plus rusés cette fois-ci.';
+    : isMultiFinish
+      ? `${ranking.length} joueur${ranking.length > 1 ? 's' : ''} classé${ranking.length > 1 ? 's' : ''}. Chaque arrivée a été annoncée.`
+      : passAndPlay
+        ? centerTarget ? `${resolvedWinnerName} a atteint la case centrale.` : `${resolvedWinnerName} a atteint son objectif.`
+        : isWin
+          ? centerTarget ? 'Vous avez atteint la case centrale avant les autres.' : 'Vous avez brillamment atteint le côté opposé.'
+          : 'Les autres joueurs ont été plus rusés cette fois-ci.';
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
@@ -161,6 +176,34 @@ export function GameOverlay({
           {subtitle}
         </motion.p>
 
+        {isMultiFinish && !isSurvival && (
+          <motion.div
+            className="mb-6 rounded-xl border border-[#3b2419] bg-[#180f0a] p-3 text-left"
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 }}
+          >
+            <div className="mb-2 flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide text-[var(--color-brass)]">
+              <span>Classement final</span>
+              <span className="text-[var(--color-ivory)]/45">{ranking.length} arrivées</span>
+            </div>
+            <ol className="space-y-2">
+              {resolvedNames.map(({ player, name, color, ranked }, index) => (
+                <li key={player} className={`flex items-center gap-2 rounded-lg px-2.5 py-2 ${ranked ? 'bg-[var(--color-wood-medium)]/50' : 'bg-black/10 opacity-60'}`}>
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#180f0a]" style={{ backgroundColor: ranked ? color : 'rgba(243,234,212,0.35)' }}>
+                    {ranked ? index + 1 : '—'}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-semibold text-[var(--color-ivory)]">{name}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-ivory)]/50">{player === localPlayer ? 'Vous' : ranked ? 'Classé' : 'Non classé'}</span>
+                </li>
+              ))}
+            </ol>
+            {isMultiFinish && ranking.length < orderedPlayers.length && (
+              <p className="mt-2 text-xs text-[var(--color-ivory)]/45">Les joueurs non classés n’ont pas atteint leur cible avant la fin.</p>
+            )}
+          </motion.div>
+        )}
+
         {isSurvival && !isWin && (
           <motion.div
             className="mb-6 flex items-center justify-center gap-4 rounded-xl border border-[#3b2419] bg-[#180f0a] px-4 py-3"
@@ -183,7 +226,7 @@ export function GameOverlay({
           </motion.div>
         )}
 
-        {isWinnerPresentation && !isSurvival && !passAndPlay && stats && (
+        {isWinnerPresentation && !isSurvival && !isMultiFinish && stats && (
           <motion.div
             className="mb-6 flex items-center justify-center gap-4 rounded-xl border border-[#3b2419] bg-[#180f0a] px-4 py-3"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
