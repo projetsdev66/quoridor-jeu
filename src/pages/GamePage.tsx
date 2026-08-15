@@ -57,7 +57,10 @@ export function GamePage() {
     myColor: string,
     round?: number,
   ): GameState => {
-    const state = getFreshState();
+    const state = getFreshState(2, mode);
+    const wallCapacity = wallsForPlayerCount(2);
+    state.players = { p1: true, p2: true, p3: false, p4: false };
+    state.wallsLeft = { p1: wallCapacity, p2: wallCapacity, p3: 0, p4: 0 };
     state.aiDifficulty = difficulty;
     state.mode = mode;
     state.names.p1 = name || 'Vous';

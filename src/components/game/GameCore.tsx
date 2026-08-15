@@ -405,7 +405,16 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
       />
 
       {roomId && participants.length < gameState.maxPlayers && !gameState.winner && (
-        <WaitingOverlay roomId={roomId} maxPlayers={gameState.maxPlayers} joinedPlayers={participants.length} centerTarget={gameState.mode === 'center'} onQuit={handleExit} />
+        <WaitingOverlay
+          roomId={roomId}
+          maxPlayers={gameState.maxPlayers}
+          joinedPlayers={participants.length}
+          players={gameState.players}
+          names={gameState.names}
+          colors={gameState.colors}
+          centerTarget={gameState.mode === 'center'}
+          onQuit={handleExit}
+        />
       )}
     </div>
   );

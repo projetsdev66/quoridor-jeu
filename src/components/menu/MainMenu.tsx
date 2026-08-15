@@ -46,16 +46,16 @@ function MenuButton({ icon, label, subtitle, onClick, accent }: MenuButtonProps)
       className={buttonVariants({
         variant: accent ? 'outline' : 'wood',
         size: 'lg',
-        className: 'w-full justify-between rounded-xl p-3.5 text-left font-sans',
+        className: 'w-full min-w-0 justify-between rounded-xl p-3.5 text-left font-sans whitespace-normal',
       })}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full bg-[var(--color-brass)]/15 border border-[var(--color-brass)]/30 flex items-center justify-center shrink-0">
           {icon}
         </div>
-        <div className="min-w-0">
-          <div className="font-bold text-[var(--color-ivory)] truncate">{label}</div>
-          {subtitle && <div className="text-xs text-[var(--color-ivory)]/45 truncate">{subtitle}</div>}
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="truncate font-bold text-[var(--color-ivory)]">{label}</div>
+          {subtitle && <div className="truncate text-xs text-[var(--color-ivory)]/45">{subtitle}</div>}
         </div>
       </div>
       <ChevronRight className="w-4 h-4 opacity-50 shrink-0" />
@@ -72,14 +72,14 @@ function GridButton({ icon, label, subtitle, onClick }: MenuButtonProps) {
       className={buttonVariants({
         variant: 'wood',
         size: 'lg',
-        className: 'flex flex-col items-start gap-1.5 rounded-xl p-3 text-left font-sans',
+        className: 'flex min-w-0 flex-col items-start gap-1.5 rounded-xl p-3 text-left font-sans whitespace-normal',
       })}
     >
       <div className="w-8 h-8 rounded-full bg-[var(--color-brass)]/15 border border-[var(--color-brass)]/30 flex items-center justify-center">
         {icon}
       </div>
-      <div className="font-bold text-sm text-[var(--color-ivory)] leading-tight">{label}</div>
-      {subtitle && <div className="text-[10px] text-[var(--color-ivory)]/45 leading-tight">{subtitle}</div>}
+      <div className="w-full truncate text-left text-sm font-bold leading-tight text-[var(--color-ivory)]">{label}</div>
+      {subtitle && <div className="w-full truncate text-left text-[10px] leading-tight text-[var(--color-ivory)]/45">{subtitle}</div>}
     </motion.button>
   );
 }
@@ -217,7 +217,7 @@ export function MainMenu({
   const totalGames = stats.wins + stats.losses;
 
   return (
-    <div className="relative w-full max-w-md lg:max-w-lg mx-auto p-6">
+    <div className="relative mx-auto w-full max-w-md px-3 py-4 sm:max-w-lg sm:p-6">
       {/* Ambient glow — pure CSS, no image assets needed */}
       <div className="pointer-events-none absolute -top-24 -left-16 w-64 h-64 rounded-full bg-[var(--color-brass)]/10 blur-3xl animate-menu-float" />
       <div className="pointer-events-none absolute -bottom-16 -right-10 w-56 h-56 rounded-full bg-[var(--color-brass)]/[0.08] blur-3xl animate-menu-float-delayed" />
@@ -227,7 +227,7 @@ export function MainMenu({
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="animate-brass-shimmer text-6xl sm:text-7xl font-serif font-bold tracking-widest mb-2 bg-[linear-gradient(120deg,#a87c3d_0%,#f0d090_38%,#c99a52_60%,#a87c3d_100%)] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(201,154,82,0.35)]"
+          className="animate-brass-shimmer text-5xl sm:text-7xl font-serif font-bold tracking-widest mb-2 bg-[linear-gradient(120deg,#a87c3d_0%,#f0d090_38%,#c99a52_60%,#a87c3d_100%)] bg-clip-text text-transparent drop-shadow-[0_2px_18px_rgba(201,154,82,0.35)]"
         >
           QUORIDOR
         </motion.h1>
@@ -263,7 +263,7 @@ export function MainMenu({
         )}
       </div>
 
-      <div className="relative bg-[var(--color-wood-dark)] rounded-2xl shadow-2xl p-6 border border-[#3b2419] min-h-[300px] overflow-hidden before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--color-brass)]/50 before:to-transparent">
+      <div className="relative min-h-[300px] overflow-hidden rounded-2xl border border-[#3b2419] bg-[var(--color-wood-dark)] p-4 shadow-2xl before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-[var(--color-brass)]/50 before:to-transparent before:content-[''] sm:p-6">
         <AnimatePresence mode="wait">
           {view === 'main' && (
             <motion.div key="main" variants={variants} initial="initial" animate="animate" exit="exit" className="flex flex-col gap-3">
@@ -292,15 +292,15 @@ export function MainMenu({
                 className={buttonVariants({
                   variant: 'brass',
                   size: 'lg',
-                  className: 'w-full justify-start gap-4 rounded-2xl p-4 text-left font-sans',
+                  className: 'w-full min-w-0 justify-start gap-4 rounded-2xl p-4 text-left font-sans whitespace-normal',
                 })}
               >
                 <div className="w-11 h-11 rounded-full bg-[#180f0a]/15 flex items-center justify-center shrink-0">
                   <User className="w-5 h-5" />
                 </div>
-                <div className="min-w-0">
-                  <div className="font-bold text-lg leading-tight">Jouer contre l'IA</div>
-                  <div className="text-xs text-[#180f0a]/70">Mode classique — choisissez la difficulté</div>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <div className="truncate text-lg font-bold leading-tight">Jouer contre l'IA</div>
+                  <div className="truncate text-xs text-[#180f0a]/70">IA active · choisissez la difficulté</div>
                 </div>
                 <ChevronRight className="w-5 h-5 ml-auto shrink-0" />
               </motion.button>

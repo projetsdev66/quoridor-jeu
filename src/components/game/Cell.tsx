@@ -69,10 +69,20 @@ export function Cell({ r, c, isValidMove, isLastMove, isPathHint, isCenterTarget
             animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.3 }}
             transition={{ delay: reducedMotion ? 0 : delayIndex * 0.02, duration: reducedMotion ? 0.1 : 0.2 }}
-            className="absolute inset-0 z-30 flex cursor-pointer touch-manipulation items-center justify-center"
+            className="absolute inset-0 z-30 flex cursor-pointer touch-manipulation items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffe5a3]"
+            role="button"
+            tabIndex={0}
+            aria-label={`Déplacer vers la ligne ${r + 1}, colonne ${c + 1}`}
             onClick={(e) => {
               e.stopPropagation();
               onClick();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                onClick();
+              }
             }}
           >
             <div className="h-1/3 w-1/3 rounded-full bg-[var(--color-brass)]/60 shadow-[0_0_8px_rgba(201,154,82,0.5)] transition-colors hover:bg-[var(--color-brass)]" />
