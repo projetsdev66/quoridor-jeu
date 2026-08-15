@@ -22,7 +22,7 @@ function applyAiAction(state: GameState, action: MoveAction): GameState {
   return applyWall(state, 'p2', action.wall);
 }
 
-for (const mode of ['classic', 'blitz', 'survival'] as const) {
+for (const mode of ['classic', 'survival'] as const) {
   for (const difficulty of ['easy', 'medium', 'hard', 'expert'] as Difficulty[]) {
     const state = prepareSolo(mode, difficulty);
     assert(state.players.p2, `${mode}/${difficulty}: p2 doit être actif`);
@@ -40,4 +40,4 @@ for (const mode of ['classic', 'blitz', 'survival'] as const) {
   }
 }
 
-console.log('OK: IA active et coups valides pour classic/blitz/survival, 4 difficultés');
+console.log('OK: IA active et coups valides pour classic/survival, 4 difficultés');

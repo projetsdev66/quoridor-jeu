@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export const TURN_DURATION = 60; // seconds per turn (classic mode default)
-export const BLITZ_TURN_DURATION = 20; // seconds per turn (blitz mode)
+export const TURN_DURATION = 60; // seconds per turn
 
 export function useTurnTimer(isActive: boolean, turnKey: number | string, duration: number = TURN_DURATION) {
   const [secondsLeft, setSecondsLeft] = useState(duration);

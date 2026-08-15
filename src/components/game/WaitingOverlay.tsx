@@ -77,34 +77,38 @@ export function WaitingOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto overscroll-contain bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:p-4">
+    <div
+      className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-black/70 p-2 backdrop-blur-sm touch-pan-y sm:p-4"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
+      <div className="flex min-h-full items-center justify-center">
       <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="waiting-room-title"
         initial={{ opacity: 0, y: 14, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-[var(--color-brass)]/60 bg-[var(--color-wood-dark)] p-4 shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:p-6"
+        className="my-2 w-full max-w-md rounded-2xl border border-[var(--color-brass)]/60 bg-[var(--color-wood-dark)] p-3 shadow-2xl sm:my-4 sm:p-5"
       >
         <div className="flex items-start gap-3">
-          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10">
             <Loader2 className="h-5 w-5 animate-spin text-[var(--color-brass)]" aria-hidden="true" />
             <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[var(--color-wood-dark)] bg-emerald-400" aria-label="Connexion active" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="waiting-room-title" className="font-serif text-xl font-bold text-[var(--color-ivory)] sm:text-2xl">Salle en préparation</h2>
+              <h2 id="waiting-room-title" className="font-serif text-lg font-bold text-[var(--color-ivory)] sm:text-2xl">Salle en préparation</h2>
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
                 <Wifi className="h-3 w-3" aria-hidden="true" /> En ligne
               </span>
             </div>
-            <p className="mt-1 text-sm leading-5 text-[var(--color-ivory)]/65">
+            <p className="mt-0.5 text-xs leading-4 text-[var(--color-ivory)]/65 sm:text-sm sm:leading-5">
               {centerTarget ? 'Format Centre : le premier joueur qui atteint la case centrale gagne.' : 'Format Bords : chaque joueur doit rejoindre son côté cible.'}
             </p>
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[#3b2419] bg-[#180f0a] p-3 sm:p-4">
+        <div className="mt-3 rounded-xl border border-[#3b2419] bg-[#180f0a] p-2.5 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <Share2 className="h-4 w-4 shrink-0 text-[var(--color-brass)]" aria-hidden="true" />
@@ -113,11 +117,11 @@ export function WaitingOverlay({
                 <p className="truncate font-mono text-2xl font-bold tracking-[0.24em] text-[var(--color-ivory)]" aria-label={`Code de salle ${roomId}`}>{roomId}</p>
               </div>
             </div>
-            <div className="flex shrink-0 gap-2">
+            <div className="flex shrink-0 gap-1.5">
               <button
                 type="button"
                 onClick={copyRoomCode}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#5c3a24] px-3 py-2 text-xs font-bold text-[var(--color-ivory)]/80 transition-colors hover:border-[var(--color-brass)] hover:text-[var(--color-ivory)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#5c3a24] px-2.5 py-1.5 text-[11px] font-bold text-[var(--color-ivory)]/80 transition-colors hover:border-[var(--color-brass)] hover:text-[var(--color-ivory)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
                 aria-live="polite"
               >
                 {copied ? <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
@@ -126,7 +130,7 @@ export function WaitingOverlay({
               <button
                 type="button"
                 onClick={shareRoom}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10 px-3 py-2 text-xs font-bold text-[var(--color-brass)] transition-colors hover:bg-[var(--color-brass)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10 px-2.5 py-1.5 text-[11px] font-bold text-[var(--color-brass)] transition-colors hover:bg-[var(--color-brass)]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
               >
                 {shared ? <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" /> : <Link2 className="h-4 w-4" aria-hidden="true" />}
                 {shared ? 'Partagé' : 'Partager'}
@@ -136,7 +140,7 @@ export function WaitingOverlay({
           {(copyError || shareError) && <p className="mt-2 text-xs text-amber-300">Le partage automatique est indisponible. Envoyez le code {roomId} manuellement.</p>}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-brass)]">
             <Users className="h-4 w-4" aria-hidden="true" />
             <span>{joinedPlayers}/{maxPlayers} joueurs présents</span>
@@ -144,7 +148,7 @@ export function WaitingOverlay({
           <span className="text-xs text-[var(--color-ivory)]/45">{remaining ? `Encore ${remaining} place${remaining > 1 ? 's' : ''}` : 'Prête'}</span>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2" aria-label="Places de la salle">
+        <div className="mt-2 grid grid-cols-2 gap-1.5" aria-label="Places de la salle">
           <AnimatePresence initial={false}>
             {PLAYER_IDS.slice(0, maxPlayers).map((player, index) => (
               <motion.div
@@ -153,7 +157,7 @@ export function WaitingOverlay({
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.18, delay: index * 0.04 }}
-                className={`flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 ${players[player] ? 'border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10' : 'border-[#3b2419] bg-[#180f0a]/60'}`}
+                className={`flex min-w-0 items-center gap-1.5 rounded-lg border px-2 py-1.5 ${players[player] ? 'border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10' : 'border-[#3b2419] bg-[#180f0a]/60'}`}
               >
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${players[player] ? 'ring-2 ring-[var(--color-brass)]/25' : 'opacity-45'}`} style={{ backgroundColor: colors[player] }} aria-hidden="true" />
                 <span className="min-w-0 truncate text-xs font-semibold text-[var(--color-ivory)]/80">{players[player] ? names[player] : `Place ${player.slice(1)}`}</span>
@@ -163,7 +167,7 @@ export function WaitingOverlay({
           </AnimatePresence>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--color-brass)]/15 bg-[var(--color-brass)]/[0.05] px-3 py-2.5 text-xs leading-5 text-[var(--color-ivory)]/55">
+        <div className="mt-3 flex items-center gap-2 rounded-xl border border-[var(--color-brass)]/15 bg-[var(--color-brass)]/[0.05] px-2.5 py-2 text-[11px] leading-4 text-[var(--color-ivory)]/55">
           <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-brass)]/15 text-[var(--color-brass)]">{remaining || '✓'}</span>
           <p>{remaining ? 'La partie démarrera automatiquement dès que les joueurs manquants auront rejoint la salle.' : 'Tous les joueurs sont présents. La partie va démarrer.'}</p>
         </div>
@@ -171,12 +175,13 @@ export function WaitingOverlay({
         <button
           type="button"
           onClick={onQuit}
-          className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#5c3a24] bg-[var(--color-wood-medium)] py-2.5 text-sm font-bold text-[var(--color-ivory)] transition-colors hover:bg-[#4a2e1b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
+          className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#5c3a24] bg-[var(--color-wood-medium)] py-2.5 text-sm font-bold text-[var(--color-ivory)] transition-colors hover:bg-[#4a2e1b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brass)]"
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
           Quitter la salle
         </button>
       </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, ChevronRight, ArrowLeft, AlertCircle, Flame, Trophy, Zap, Shield, HelpCircle, Info, RefreshCw } from 'lucide-react';
+import { User, Users, ChevronRight, ArrowLeft, AlertCircle, Flame, Trophy, Shield, HelpCircle, Info, RefreshCw } from 'lucide-react';
 import { type GameState, type Player, type PlayerCount, PLAYER_IDS, getFreshState } from '@/lib/gameLogic';
 import { generateUniqueRoomCode, createRoom, joinRoom, peekRoom, type RoomInfo } from '@/lib/firebase';
 import { useStats } from '@/hooks/useStats';
@@ -14,7 +14,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface MainMenuProps {
-  onStartSolo: (difficulty: Difficulty, playerName: string, mode: 'classic' | 'blitz', myColor: string) => void;
+  onStartSolo: (difficulty: Difficulty, playerName: string, myColor: string) => void;
   onStartDuo: (playerName: string, myColor: string, playerCount: PlayerCount, gameMode?: 'duo' | 'center') => void;
   onStartSurvival: (playerName: string, myColor: string, startRound?: number) => void;
   onRoomCreated: (roomId: string, state: GameState) => void;
@@ -92,7 +92,6 @@ export function MainMenu({
 }: MainMenuProps) {
   const [view, setView] = useState<'main' | 'solo' | 'local' | 'multi' | 'multi-join' | 'survival-start'>('main');
   const [showRules, setShowRules] = useState(false);
-  const [pendingMode, setPendingMode] = useState<'classic' | 'blitz'>('classic');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -123,8 +122,7 @@ export function MainMenu({
     try { localStorage.setItem('quoridor_color', hex); } catch { /* ignore */ }
   };
 
-  const openDifficulty = (mode: 'classic' | 'blitz') => {
-    setPendingMode(mode);
+  const openDifficulty = () => {
     setView('solo');
   };
 
@@ -283,7 +281,7 @@ export function MainMenu({
 
               {/* Primary CTA — the one action most players want first */}
               <motion.button
-                onClick={() => openDifficulty('classic')}
+                onClick={openDifficulty}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className={cn(buttonVariants({
@@ -309,12 +307,6 @@ export function MainMenu({
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
-                <GridButton
-                  icon={<Zap className="text-[var(--color-brass)] w-4 h-4" />}
-                  label="Blitz"
-                  subtitle="20s / coup"
-                  onClick={() => openDifficulty('blitz')}
-                />
                 <GridButton
                   icon={<Shield className="text-[var(--color-brass)] w-4 h-4" />}
                   label="Survie"
@@ -345,8 +337,8 @@ export function MainMenu({
               </button>
 
               <h3 className="text-xl font-serif text-[var(--color-brass)] mb-1">Difficulté de l'IA</h3>
-              <p className="text-xs text-[var(--color-ivory)]/40 mb-1">
-                Mode {pendingMode === 'blitz' ? 'Blitz (20s par coup)' : 'Classique'}
+                <p className="text-xs text-[var(--color-ivory)]/40 mb-1">
+                Mode Classique · 60 secondes par tour
               </p>
 
               {DIFFICULTIES.map((d) => (
@@ -354,7 +346,7 @@ export function MainMenu({
                   key={d.id}
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onStartSolo(d.id, playerName.trim(), pendingMode, myColor)}
+                  onClick={() => onStartSolo(d.id, playerName.trim(), myColor)}
                   className="p-3 bg-[var(--color-wood-medium)] rounded-xl text-left hover:bg-[#4a2e1b] transition-colors border border-transparent hover:border-[#5c3a24]"
                 >
                   <div className="font-bold text-[var(--color-ivory)]">{d.label}</div>

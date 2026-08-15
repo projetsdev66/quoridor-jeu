@@ -12,7 +12,7 @@ export type MoveAction =
   | { type: 'move'; pos: Position }
   | { type: 'wall'; wall: Wall };
 export type PlayerCount = 2 | 3 | 4;
-export type GameMode = 'classic' | 'blitz' | 'survival' | 'duo' | 'center';
+export type GameMode = 'classic' | 'survival' | 'duo' | 'center';
 export type Goal = { axis: 'row' | 'col'; index: number } | { axis: 'center' };
 
 export interface GameState {
@@ -116,8 +116,8 @@ export function getFreshState(maxPlayers: PlayerCount = 2, mode: GameMode = 'cla
 export function normalizeGameState(data?: Partial<GameState> | null): GameState {
   const raw = (data ?? {}) as Partial<GameState>;
   const maxPlayers: PlayerCount = raw.maxPlayers === 3 || raw.maxPlayers === 4 ? raw.maxPlayers : 2;
-  const requestedMode = raw.mode;
-  const requestedGameMode: GameMode = requestedMode === 'blitz' || requestedMode === 'survival' || requestedMode === 'duo' || requestedMode === 'center'
+  const requestedMode = raw.mode as string | undefined;
+  const requestedGameMode: GameMode = requestedMode === 'survival' || requestedMode === 'duo' || requestedMode === 'center'
     ? requestedMode
     : 'classic';
   const mode: GameMode = requestedGameMode === 'center' && maxPlayers !== 4 ? 'classic' : requestedGameMode;

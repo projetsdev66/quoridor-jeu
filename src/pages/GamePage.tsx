@@ -51,7 +51,7 @@ export function GamePage() {
   const buildSoloState = (
     difficulty: Difficulty,
     name: string,
-    mode: 'classic' | 'blitz' | 'survival',
+    mode: 'classic' | 'survival',
     myColor: string,
     round?: number,
   ): GameState => {
@@ -69,10 +69,10 @@ export function GamePage() {
     return state;
   };
 
-  const handleStartSolo = (difficulty: Difficulty, name: string, mode: 'classic' | 'blitz', myColor: string) => {
+  const handleStartSolo = (difficulty: Difficulty, name: string, myColor: string) => {
     setPlayerName(name || 'Vous');
     setSurvivalActive(false);
-    setActiveGame({ state: buildSoloState(difficulty, name, mode, myColor), localPlayer: 'p1' });
+    setActiveGame({ state: buildSoloState(difficulty, name, 'classic', myColor), localPlayer: 'p1' });
     setView('game');
   };
 

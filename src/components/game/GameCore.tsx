@@ -8,7 +8,7 @@ import { useGame } from '@/hooks/useGame';
 import { useAI } from '@/hooks/useAI';
 import { useSound } from '@/hooks/useSound';
 import { useTimer } from '@/hooks/useTimer';
-import { useTurnTimer, TURN_DURATION, BLITZ_TURN_DURATION } from '@/hooks/useTurnTimer';
+import { useTurnTimer, TURN_DURATION } from '@/hooks/useTurnTimer';
 import { useStats } from '@/hooks/useStats';
 import { useSettings } from '@/hooks/useSettings';
 import { useToast } from '@/hooks/use-toast';
@@ -40,8 +40,6 @@ interface GameCoreProps {
 
 function getModeLabel(mode?: GameState['mode']) {
   switch (mode) {
-    case 'blitz':
-      return 'Blitz';
     case 'survival':
       return 'Survie';
     case 'duo':
@@ -135,7 +133,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   const isMyTurn = gameState.turn === localPlayerId && !gameIsOver && !gameState.ranking.includes(localPlayerId);
   const isBoardTurn = gameState.turn === boardPlayer && !gameIsOver && !gameState.ranking.includes(boardPlayer);
 
-  const turnDuration = gameState.mode === 'blitz' ? BLITZ_TURN_DURATION : TURN_DURATION;
+  const turnDuration = TURN_DURATION;
   const { secondsLeft: turnSecondsLeft, isUrgent: turnIsUrgent } = useTurnTimer(
     isBoardTurn,
     gameState.history.length,
@@ -205,7 +203,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
 
       <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
           <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
-          <div className={`grid w-full max-w-[460px] gap-3 ${opponentPlayers.length > 2 ? 'sm:grid-cols-2' : ''}`}>
+          <div className={`grid w-full max-w-[460px] grid-cols-1 gap-2 ${opponentPlayers.length > 1 ? 'min-[360px]:grid-cols-2' : ''}`}>
             {opponentPlayers.map((player) => (
               <PlayerCard
                 key={player}
@@ -218,6 +216,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
                 finishedRank={gameState.ranking.indexOf(player) >= 0 ? gameState.ranking.indexOf(player) + 1 : undefined}
                 isLocal={false}
                 avatarLabel={isLocalDuo ? `J${player.slice(1)}` : player.slice(1)}
+                compact
               />
             ))}
           </div>
