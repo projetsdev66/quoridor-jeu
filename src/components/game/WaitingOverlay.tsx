@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Copy, Link2, Loader2, LogOut, Share2, Users, Wifi } from 'lucide-react';
 import type { Player, PlayerCount } from '@/lib/gameLogic';
@@ -30,6 +30,17 @@ export function WaitingOverlay({
   const [copyError, setCopyError] = useState(false);
   const [shared, setShared] = useState(false);
   const [shareError, setShareError] = useState(false);
+
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
 
   const copyRoomCode = async () => {
     setCopyError(false);
@@ -78,11 +89,12 @@ export function WaitingOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[60] overflow-hidden bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm touch-pan-y"
+      style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', overscrollBehaviorY: 'contain' }}
     >
       <div
-        className="flex h-[100dvh] min-h-0 w-full items-start justify-center overflow-y-auto overscroll-contain p-2 touch-pan-y sm:items-center sm:p-4"
-        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', overscrollBehaviorY: 'contain' }}
+        className="flex min-h-[100dvh] w-full items-start justify-center p-2 sm:items-center sm:p-4"
+        style={{ touchAction: 'pan-y' }}
       >
       <motion.div
         role="dialog"
@@ -90,7 +102,7 @@ export function WaitingOverlay({
         aria-labelledby="waiting-room-title"
         initial={{ opacity: 0, y: 14, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="my-1 w-full max-w-md rounded-2xl border border-[var(--color-brass)]/60 bg-[var(--color-wood-dark)] p-2.5 shadow-2xl sm:my-4 sm:p-5"
+        className="my-2 w-full max-w-md rounded-2xl border border-[var(--color-brass)]/60 bg-[var(--color-wood-dark)] p-2.5 shadow-2xl sm:my-4 sm:p-5"
       >
         <div className="flex items-start gap-3">
             <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10">

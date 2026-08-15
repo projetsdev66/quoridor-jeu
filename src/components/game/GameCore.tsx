@@ -188,7 +188,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
 
   return (
     <div
-      className="relative min-h-[100dvh] overflow-x-clip overflow-y-auto overscroll-y-auto flex flex-col bg-[var(--color-wood-dark)] touch-pan-y"
+      className="fixed inset-0 z-0 flex min-h-0 flex-col overflow-x-clip overflow-y-scroll overscroll-y-contain bg-[var(--color-wood-dark)] touch-pan-y"
       style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
     >
       <TopBar
@@ -204,7 +204,7 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         centerTarget={gameState.mode === 'center'}
       />
 
-      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-2 pb-24 sm:p-4 sm:pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-3 sm:gap-6 lg:gap-10">
+      <div className="flex min-h-max flex-none flex-col items-center justify-center gap-3 p-2 pb-24 sm:gap-6 sm:p-4 sm:pb-28 lg:flex-1 lg:flex-row lg:items-start lg:gap-10 lg:pb-8">
           <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
           <div className={`grid w-full max-w-[460px] gap-1.5 ${opponentPlayers.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {opponentPlayers.map((player) => (

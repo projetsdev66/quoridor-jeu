@@ -190,7 +190,10 @@ export function GamePage() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center relative overflow-hidden bg-cover bg-center">
+    <div
+      className="fixed inset-0 z-0 flex min-h-0 items-start justify-center overflow-x-hidden overflow-y-scroll overscroll-y-contain bg-cover bg-center py-4 touch-pan-y sm:items-center sm:py-6"
+      style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+    >
       {/* Decorative background board elements */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] opacity-20 transform rotate-12 blur-sm pointer-events-none">
         <div className="w-full h-full border-[20px] border-[#5c3a24] rounded-xl grid grid-cols-3 gap-2 p-2">

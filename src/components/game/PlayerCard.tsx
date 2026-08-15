@@ -1,5 +1,5 @@
-import { type Player } from '@/lib/gameLogic';
 import { TURN_DURATION } from '@/hooks/useTurnTimer';
+import type { Player } from '@/lib/gameLogic';
 
 interface PlayerCardProps {
   player: Player;
@@ -17,38 +17,86 @@ interface PlayerCardProps {
   compact?: boolean;
 }
 
-export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, turnSecondsLeft, turnIsUrgent, turnDuration = TURN_DURATION, avatarLabel, wallCapacity = 10, finishedRank, compact = false }: PlayerCardProps) {
+export function PlayerCard({
+  player: _player,
+  name,
+  color,
+  wallsLeft,
+  isActive,
+  isLocal,
+  turnSecondsLeft,
+  turnIsUrgent,
+  turnDuration = TURN_DURATION,
+  avatarLabel,
+  wallCapacity = 10,
+  finishedRank,
+  compact = false,
+}: PlayerCardProps) {
   const showTimer = isActive && isLocal && turnSecondsLeft !== undefined;
   const progress = turnSecondsLeft !== undefined ? Math.max(0, Math.min(1, turnSecondsLeft / turnDuration)) : 1;
+  const playerLabel = avatarLabel ?? (isLocal ? 'Moi' : 'IA');
+
+  if (compact) {
+    return (
+      <div
+        className={`relative flex h-8 min-w-0 items-center gap-1.5 overflow-hidden rounded-md border px-1.5 transition-colors ${
+          isActive
+            ? 'border-[var(--color-brass)]/45 bg-[var(--color-brass)]/10'
+            : 'border-white/5 bg-[var(--color-wood-dark)]/75'
+        }`}
+        title={`${playerLabel} · ${name} · ${wallsLeft} murs`}
+      >
+        <span
+          className="h-2 w-2 shrink-0 rounded-full border border-white/20"
+          style={{ backgroundColor: color }}
+          aria-hidden="true"
+        />
+        <span className="shrink-0 font-mono text-[9px] font-bold text-[var(--color-ivory)]/70">{playerLabel}</span>
+        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-[var(--color-ivory)]">{name}</span>
+        {finishedRank ? (
+          <span
+            className="shrink-0 rounded-full px-1 text-[8px] font-bold"
+            style={{ backgroundColor: `${color}22`, color }}
+            aria-label={`Arrivé en ${finishedRank}${finishedRank === 1 ? 'ère' : 'e'} position`}
+          >
+            #{finishedRank}
+          </span>
+        ) : isActive ? (
+          <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--color-brass)]" aria-label="Tour actif" />
+        ) : null}
+        <span className="shrink-0 font-mono text-[9px] text-[var(--color-ivory)]/55" aria-label={`${wallsLeft} murs restants`}>
+          {wallsLeft} murs
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
-      className={`relative ${compact ? 'min-h-[42px] rounded-lg px-2 py-1.5' : 'min-h-[76px] rounded-2xl p-3 sm:p-4'} overflow-hidden transition-all duration-300 ${
+      className={`relative min-h-[76px] overflow-hidden rounded-2xl p-3 transition-all duration-300 sm:p-4 ${
         isActive
           ? 'border border-[var(--color-brass)]/30 bg-[linear-gradient(135deg,rgba(59,36,25,0.95),rgba(36,22,16,0.98))] shadow-[0_0_24px_rgba(201,154,82,0.14)]'
           : 'border border-transparent bg-[var(--color-wood-dark)] opacity-85'
-      } ${isActive ? (compact ? 'scale-[1.01]' : 'scale-[1.02]') : ''}`}
+      } ${isActive ? 'scale-[1.02]' : ''}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_45%)]" />
 
-      <div className={`relative flex items-center ${compact ? 'gap-1.5' : 'gap-3'}`}>
+      <div className="relative flex items-center gap-3">
         <div
-          className={`${compact ? 'flex h-6 w-6 text-[9px]' : 'flex h-11 w-11 text-sm'} shrink-0 items-center justify-center rounded-full border border-white/10 font-bold text-white shadow-inner`}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 text-sm font-bold text-white shadow-inner"
           style={{ backgroundColor: color }}
         >
-          {avatarLabel ?? (isLocal ? 'Moi' : 'IA')}
+          {playerLabel}
         </div>
 
-        <div className={`min-w-0 flex-1 ${compact ? 'flex items-center gap-1.5' : ''}`}>
-          <div className={`flex min-w-0 items-center justify-between gap-1.5 font-serif font-bold text-[var(--color-ivory)] ${compact ? 'flex-1 text-xs' : 'text-lg'}`}>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center justify-between gap-1.5 font-serif text-lg font-bold text-[var(--color-ivory)]">
             <span className="truncate">{name}</span>
-            <div className={`flex shrink-0 items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+            <div className="flex shrink-0 items-center gap-2">
               {showTimer && (
                 <span
                   className={`rounded-full px-2 py-0.5 text-sm font-mono font-bold tabular-nums transition-colors ${
-                    turnIsUrgent
-                      ? 'bg-red-400/10 text-red-300'
-                      : 'bg-[var(--color-brass)]/12 text-[var(--color-brass)]'
+                    turnIsUrgent ? 'bg-red-400/10 text-red-300' : 'bg-[var(--color-brass)]/12 text-[var(--color-brass)]'
                   }`}
                 >
                   {turnSecondsLeft}s
@@ -56,8 +104,7 @@ export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, 
               )}
               {finishedRank && (
                 <span
-                  className={`${compact ? 'px-1.5 py-0 text-[9px]' : 'px-2 py-0.5 text-xs'} rounded-full border font-bold`}
-
+                  className="rounded-full border px-2 py-0.5 text-xs font-bold"
                   style={{ borderColor: `${color}80`, backgroundColor: `${color}20`, color }}
                   aria-label={`Arrivé en ${finishedRank}${finishedRank === 1 ? 'ère' : 'e'} position`}
                 >
@@ -73,16 +120,16 @@ export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, 
             </div>
           </div>
 
-          <div className={`${compact ? 'mt-0 shrink-0 gap-0.5' : 'mt-2 gap-1'} flex items-center`}>
-            {finishedRank && !compact && <span className="mr-1 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Arrivé</span>}
+          <div className="mt-2 flex items-center gap-1">
+            {finishedRank && <span className="mr-1 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Arrivé</span>}
             {Array.from({ length: wallCapacity }).map((_, i) => (
               <div
                 key={i}
-                className={`${compact ? 'h-2 w-1' : 'h-3 w-2'} rounded-sm transition-all duration-300`}
+                className="h-3 w-2 rounded-sm transition-all duration-300"
                 style={i < wallsLeft ? { backgroundColor: color, boxShadow: '0 1px 2px rgba(0,0,0,0.4)' } : { backgroundColor: '#180f0a', opacity: 0.3 }}
               />
             ))}
-            <span className={`${compact ? 'ml-1 text-[9px]' : 'ml-2 text-xs'} font-mono text-[var(--color-ivory)]/65`} aria-label={`${wallsLeft} murs restants`}>{compact ? wallsLeft : `${wallsLeft} murs`}</span>
+            <span className="ml-2 text-xs font-mono text-[var(--color-ivory)]/65" aria-label={`${wallsLeft} murs restants`}>{wallsLeft} murs</span>
           </div>
         </div>
       </div>
@@ -90,9 +137,7 @@ export function PlayerCard({ player, name, color, wallsLeft, isActive, isLocal, 
       {showTimer && (
         <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-[#180f0a]">
           <div
-            className={`h-full rounded-full transition-all duration-1000 ${
-              turnIsUrgent ? 'bg-red-400' : 'bg-[var(--color-brass)]'
-            }`}
+            className={`h-full rounded-full transition-all duration-1000 ${turnIsUrgent ? 'bg-red-400' : 'bg-[var(--color-brass)]'}`}
             style={{ width: `${progress * 100}%` }}
           />
         </div>
