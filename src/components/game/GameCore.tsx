@@ -187,7 +187,10 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
   const overlayWinner = gameState.winner;
 
   return (
-    <div className="relative min-h-[100dvh] overflow-x-clip flex flex-col bg-[var(--color-wood-dark)]">
+    <div
+      className="relative min-h-[100dvh] overflow-x-clip overflow-y-auto overscroll-y-auto flex flex-col bg-[var(--color-wood-dark)] touch-pan-y"
+      style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+    >
       <TopBar
         soundEnabled={settings.soundEnabled}
         toggleSound={() => updateSetting('soundEnabled', !settings.soundEnabled)}
@@ -201,9 +204,9 @@ export function GameCore({ initialState, roomId, localPlayerId, onHome, onSurviv
         centerTarget={gameState.mode === 'center'}
       />
 
-      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-4 pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-6 lg:gap-10">
+      <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center p-2 pb-24 sm:p-4 sm:pb-28 lg:pb-8 max-w-6xl mx-auto w-full gap-3 sm:gap-6 lg:gap-10">
           <div className="flex flex-col items-center gap-6 w-full lg:w-auto">
-          <div className={`grid w-full max-w-[460px] grid-cols-1 gap-2 ${opponentPlayers.length > 1 ? 'min-[360px]:grid-cols-2' : ''}`}>
+          <div className={`grid w-full max-w-[460px] gap-1.5 ${opponentPlayers.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {opponentPlayers.map((player) => (
               <PlayerCard
                 key={player}

@@ -78,17 +78,19 @@ export function WaitingOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-black/70 p-2 backdrop-blur-sm touch-pan-y sm:p-4"
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      className="fixed inset-0 z-[60] overflow-hidden bg-black/70 backdrop-blur-sm"
     >
-      <div className="flex min-h-full items-center justify-center">
+      <div
+        className="flex h-[100dvh] min-h-0 w-full items-start justify-center overflow-y-auto overscroll-contain p-2 touch-pan-y sm:items-center sm:p-4"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', overscrollBehaviorY: 'contain' }}
+      >
       <motion.div
         role="dialog"
         aria-modal="true"
         aria-labelledby="waiting-room-title"
         initial={{ opacity: 0, y: 14, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="my-2 w-full max-w-md rounded-2xl border border-[var(--color-brass)]/60 bg-[var(--color-wood-dark)] p-3 shadow-2xl sm:my-4 sm:p-5"
+        className="my-1 w-full max-w-md rounded-2xl border border-[var(--color-brass)]/60 bg-[var(--color-wood-dark)] p-2.5 shadow-2xl sm:my-4 sm:p-5"
       >
         <div className="flex items-start gap-3">
             <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--color-brass)]/35 bg-[var(--color-brass)]/10">
